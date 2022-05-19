@@ -1,6 +1,7 @@
 import client from "./lib/client";
 
 export async function refreshAccessToken(code: string, provider: string) {
+  // TODO: strongly type
   const resp: any = await client.postForm("v2/auth/", { code, provider });
 
   if (resp.access_token != null) {

@@ -19,7 +19,7 @@ Just pick something and work on it. Take liberties or don't. There are three bas
 | `cabana`                | `apps/cabana`    |   ✅    |            |             |
 | `connect`               | `apps/connect`   |         |            |             |
 | `@commaai/comma-api`    | `packages/api`   |   ✅    |     ✅     |             |
-| `@commai/my-comma-auth` | `packages/auth`  |         |            |             |
+| `@commai/my-comma-auth` | `packages/auth`  |   ✅    |     ✅     |             |
 | `can-message`           | `packages/can`   |   ✅    |     ✅     |             |
 | `@commaai/pandajs`      | `packages/panda` |   ✅    |     ✅     |             |
 | `@commaai/log_reader`   | `packages/rlog`  |         |            |             |
@@ -56,4 +56,4 @@ To add an internal package (`panda` for example) to another package, add the fol
 }
 ```
 
-The `"*"` character is a shorthand that `turborepo` uses to say "this is an internal package".
+The `"*"` character is a shorthand that `turborepo` uses to say "this is an internal package". After adding a new internal package, be sure to run `npm install` to create the symlinks.
