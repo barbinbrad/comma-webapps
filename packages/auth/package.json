@@ -1,0 +1,22 @@
+{
+  "name": "auth",
+  "version": "0.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "sideEffects": false,
+  "private": true,
+  "scripts": {
+    "clean": "rm -rf .turbo && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.33",
+    "config": "*",
+    "eslint": "^7.32.0",
+    "tsconfig": "*",
+    "tsup": "^5.12.8",
+    "typescript": "^4.5.3"
+  },
+  "dependencies": {
+    "cross-fetch": "^3.1.5"
+  }
+}

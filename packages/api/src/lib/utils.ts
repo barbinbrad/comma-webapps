@@ -1,7 +1,9 @@
 const utils = {
   stringify: (params: { [key: string]: any }): string => {
     return Object.keys(params)
-      .map((key) => `${key}=${params[key]}`)
+      .map(
+        (key) => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`
+      )
       .join("&");
   },
 };

@@ -1,1 +1,2 @@
-declare module 'comma-api';
+declare module 'api';
+declare module 'auth';

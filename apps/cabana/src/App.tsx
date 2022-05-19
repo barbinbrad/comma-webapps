@@ -1,75 +1,47 @@
-import Cabana, { Props } from './Cabana';
-import { demoProps } from './data/demo';
-import storage from './services/localStorage';
+import * as React from 'react';
+import CommaAuth, { config as AuthConfig, storage as AuthStorage } from 'auth';
+import { auth as AuthApi, request as Request } from 'api';
+import Cabana, { getPropsFromParams } from './Cabana';
 
 export default function App() {
-  const props = usePropsFromURL();
-  return <Cabana {...props} />;
-}
-
-function usePropsFromURL(): Props {
   const params = new URLSearchParams(window.location.search);
-  const p = {
-    route: params.get('route'),
-    demo: !!params.get('demo'),
-    segments: params.get('segments'),
-  };
+  const props = getPropsFromParams(params);
+  React.useEffect(() => {
+    authenticate();
 
-  let segments;
+    function authenticate() {
+      if (window.location && window.location.pathname === AuthConfig.AUTH_PATH) {
+        try {
+          const code = params.get('code');
+          const provider = params.get('provider');
+          if (code && provider) {
+            const token = AuthApi.refreshAccessToken(code, provider);
+            if (token) {
+              AuthStorage.setCommaAccessToken(token);
 
-  if (p.segments && p.segments.length) {
-    segments = p.segments.split(',').map(Number);
+              // reset stored path
+              if (window.sessionStorage) {
+                const onboardingPath = window.sessionStorage.getItem(
+                  AuthStorage.keys.onboardingPath,
+                );
+                if (onboardingPath) {
+                  window.sessionStorage.removeItem(AuthStorage.keys.onboardingPath);
+                  window.location.href = onboardingPath;
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
 
-    if (segments.length !== 2) {
-      segments = undefined;
+      const token = CommaAuth.init();
+      if (token) {
+        Request.configure(token);
+      }
     }
-  }
+  }, []);
 
-  let props: Props = {
-    autoplay: true,
-    startTime: Number(params.get('seekTime') || 0),
-    segments,
-    isDemo: p.demo,
-  };
-
-  let persistedDbc = null;
-
-  if (p.route) {
-    const [dongleId, route] = p.route.split('|');
-    props.dongleId = dongleId;
-    props.name = route;
-
-    persistedDbc = storage.fetchPersistedDBC(p.route);
-
-    const max = params.get('max');
-    const url = params.get('url');
-    const exp = params.get('exp');
-    const sig = params.get('sig');
-
-    if (max) {
-      props.max = parseInt(max, 10);
-    }
-    if (url) {
-      props.url = url;
-    }
-    if (exp) {
-      props.exp = exp;
-    }
-    if (sig) {
-      props.sig = sig;
-    }
-
-    props.isLegacyShare = Boolean(max && url && !exp && !sig);
-    props.isShare = Boolean(max && url && exp && sig);
-  } else if (p.demo) {
-    props = { ...props, ...demoProps };
-  }
-
-  if (persistedDbc) {
-    const { dbcFilename, dbc } = persistedDbc;
-    props.dbc = dbc;
-    props.dbcFilename = dbcFilename;
-  }
-
-  return props;
+  return <Cabana {...props} />;
 }

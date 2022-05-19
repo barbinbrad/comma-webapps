@@ -48,7 +48,8 @@ export default class CommaAPI {
   }
 
   postForm(url: string, data: { [key: string]: any } = {}) {
-    const parameterizedUrl = utils.stringify(data);
+    const parameterizedUrl =
+      Object.keys(data).length === 0 ? url : `${url}?${utils.stringify(data)}`;
     return this.fetchJson(parameterizedUrl, {
       method: "POST",
       headers: {
@@ -114,8 +115,7 @@ export default class CommaAPI {
       ...this.headers,
       ...params,
     };
-
     // native call
-    return crossFetch(url, options);
+    return crossFetch(`${this.url}${url}`, options);
   }
 }
