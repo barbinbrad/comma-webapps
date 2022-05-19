@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Isomorphic",
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "module": "CommonJS",
+    "sourceMap": true,
+    "target": "ES2015",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "Node",
+    "forceConsistentCasingInFileNames": true,
+    "stripInternal": true,
+    "allowSyntheticDefaultImports": true
+  }
+}

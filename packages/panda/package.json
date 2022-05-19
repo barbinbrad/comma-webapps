@@ -1,0 +1,39 @@
+{
+  "name": "panda",
+  "version": "0.0.0",
+  "main": "dist/main/index.js",
+  "module": "dist/module/index.js",
+  "types": "dist/module/index.d.ts",
+  "sideEffects": false,
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsc -p tsconfig.json && tsc -p tsconfig.module.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.module.json",
+    "lint": "TIMING=1 eslint src --fix",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.34",
+    "config": "*",
+    "eslint": "^7.32.0",
+    "eslint-plugin-jest": "^26.2.2",
+    "tsconfig": "*",
+    "tsup": "^5.12.8",
+    "typescript": "^4.5.3"
+  },
+  "dependencies": {
+    "ap": "^0.2.0",
+    "can": "*",
+    "is-browser": "^2.1.0",
+    "is-node": "^1.0.2",
+    "is-promise": "^4.0.0",
+    "performance-now": "^2.1.0",
+    "raf": "^3.4.1",
+    "thyming": "^0.1.1",
+    "usb": "^2.4.1",
+    "weakmap-event": "^2.0.7"
+  }
+}

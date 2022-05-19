@@ -1,0 +1,19 @@
+// eslint-disable-next-line import/prefer-default-export
+export const DEFAULT_HEADERS = {
+  "Content-Type": "application/json",
+};
+
+export let COMMA_URL_ROOT = "https://api.comma.ai/";
+if (typeof window !== "undefined" && window.COMMA_URL_ROOT) {
+  COMMA_URL_ROOT = window.COMMA_URL_ROOT;
+}
+
+export let ATHENA_URL_ROOT = "https://athena.comma.ai/";
+if (typeof window !== "undefined" && window.ATHENA_URL_ROOT) {
+  ATHENA_URL_ROOT = window.ATHENA_URL_ROOT;
+}
+
+export let BILLING_URL_ROOT = "https://billing.comma.ai/";
+if (typeof window !== "undefined" && window.BILLING_URL_ROOT) {
+  BILLING_URL_ROOT = window.BILLING_URL_ROOT;
+}

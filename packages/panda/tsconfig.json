@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist/main",
+    "rootDir": "./src"
+  },
+  "exclude": ["node_modules"],
+  "extends": "tsconfig/isomorphic.json",
+  "include": ["src"]
+}
