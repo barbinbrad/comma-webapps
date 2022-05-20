@@ -1,19 +1,14 @@
-const BIG_ENDIAN_START_BITS: number[] = [];
-for (let i = 0; i < 8 * 64; i += 8) {
-  for (let j = 7; j > -1; j -= 1) {
-    BIG_ENDIAN_START_BITS.push(i + j);
-  }
-}
-
-export { BIG_ENDIAN_START_BITS };
+/* eslint-disable no-param-reassign */
+import { theme } from 'design';
+import { Message } from '../../types';
 
 const utils = {
-  // findMaxByteStateChangeCount(messages) {
-  //   return Object.values(messages)
-  //     .map((m) => m.byteStateChangeCounts)
-  //     .reduce((counts, countArr) => counts.concat(countArr), []) // flatten arrays
-  //     .reduce((count1, count2) => (count1 > count2 ? count1 : count2), 0); // find max
-  // },
+  findMaxByteStateChangeCount(messages: { [key: string]: Message }) {
+    return Object.values(messages)
+      .map((m) => m.byteStateChangeCounts)
+      .reduce((counts, countArr) => counts.concat(countArr), []) // flatten arrays
+      .reduce((count1, count2) => (count1 > count2 ? count1 : count2), 0); // find max
+  },
 
   // addCanMessage(
   //   canMessage,
@@ -162,15 +157,15 @@ const utils = {
     return BIG_ENDIAN_START_BITS[bigEndianIndex];
   },
 
-  // setMessageByteColors(message, maxByteStateChangeCount) {
-  //   message.byteColors = message.byteStateChangeCounts
-  //     .map((count) =>
-  //       isNaN(count) ? 0 : Math.min(255, 75 + 180 * (count / maxByteStateChangeCount)),
-  //     )
-  //     .map((red) => `rgb(${Math.round(red)},0,0)`);
+  setMessageByteColors(message: Message, max: number) {
+    message.byteColors = message.byteStateChangeCounts
+      .map((count) =>
+        Number.isNaN(count) ? 100 : Math.min(1, Math.floor(9 * (count / max))) * 100,
+      )
+      .map((scale) => theme.colors.brand[scale]);
 
-  //   return message;
-  // },
+    return message;
+  },
 
   // maxMessageSize(message, initial = 8) {
   //   let max = initial;
@@ -184,4 +179,12 @@ const utils = {
   // },
 };
 
+const BIG_ENDIAN_START_BITS: number[] = [];
+for (let i = 0; i < 8 * 64; i += 8) {
+  for (let j = 7; j > -1; j -= 1) {
+    BIG_ENDIAN_START_BITS.push(i + j);
+  }
+}
+
 export default utils;
+export { BIG_ENDIAN_START_BITS };

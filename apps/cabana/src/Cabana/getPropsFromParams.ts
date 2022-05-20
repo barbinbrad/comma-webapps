@@ -1,3 +1,4 @@
+import { GITHUB_AUTH_TOKEN_KEY } from 'auth';
 import { demoProps } from '../data/demo';
 import storage from '../services/localStorage';
 import { Props } from './types';
@@ -7,6 +8,7 @@ export default function getPropsFromParams(params: URLSearchParams): Props {
     route: params.get('route'),
     demo: !!params.get('demo'),
     segments: params.get('segments'),
+    authToken: params.get(GITHUB_AUTH_TOKEN_KEY),
   };
 
   let segments;
@@ -24,6 +26,7 @@ export default function getPropsFromParams(params: URLSearchParams): Props {
     startTime: Number(params.get('seekTime') || 0),
     segments,
     isDemo: p.demo,
+    unlogger: !!params.get('unlogger'),
   };
 
   let persistedDbc = null;
@@ -65,5 +68,43 @@ export default function getPropsFromParams(params: URLSearchParams): Props {
     props.dbcFilename = dbcFilename;
   }
 
+  if (p.authToken !== null) {
+    props.githubAuthToken = p.authToken;
+    storage.persistGithubAuthToken(p.authToken);
+    const urlNoAuthToken = modifyQueryParameters({
+      remove: [GITHUB_AUTH_TOKEN_KEY],
+    });
+    window.location.href = urlNoAuthToken;
+  } else {
+    props.githubAuthToken = storage.fetchPersistedGithubAuthToken();
+  }
+
   return props;
+}
+
+type ModifyQueryParams = {
+  remove: string[];
+};
+
+function modifyQueryParameters({ remove = [] }: ModifyQueryParams) {
+  const regex = /[?&]([^&#]+)=([^&#]*)/;
+  const results = regex.exec(window.location.search);
+
+  const params: { [key: string]: string } = {};
+  if (results != null) {
+    for (let i = 1; i < results.length - 1; i += 2) {
+      const key = results[i];
+      const value = results[i + 1];
+      params[key] = value;
+    }
+    Object.keys(params).forEach((key) => {
+      if (remove.indexOf(key) !== -1) {
+        delete params[key];
+      }
+    });
+  }
+
+  return `${window.location.origin + window.location.pathname}?${Object.keys(params)
+    .map((k) => `${k}=${encodeURIComponent(decodeURIComponent(params[k]))}`)
+    .join('&')}`;
 }

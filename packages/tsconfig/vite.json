@@ -4,6 +4,7 @@
   "Display": "Vite",
   "compilerOptions": {
     "types": ["vite/client"],
+    "target": "esnext",
     "noEmit": true,
     "sourceMap": false,
     "jsx": "react-jsx"

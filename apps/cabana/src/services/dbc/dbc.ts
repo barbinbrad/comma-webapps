@@ -1,6 +1,4 @@
 /* eslint-disable class-methods-use-this */
-/* eslint-disable no-bitwise */
-/* eslint-disable no-continue */
 import Signal from './signal';
 import Frame from './frame';
 import BoardUnit from './boardunit';
@@ -70,7 +68,7 @@ export default class DBC {
 
   valueTables: Map<string, Map<string, string>>;
 
-  constructor(dbcString: string) {
+  constructor(dbcString?: string) {
     this.boardUnits = [];
     this.comments = [];
     this.messages = new Map<number, Frame>();
@@ -103,7 +101,7 @@ export default class DBC {
     const boardUnitNames = this.boardUnits.map((bu) => bu.name);
     const missingBoardUnits = Array.from(this.messages.entries())
       .map((entry) => Object.values(entry[1].signals))
-      .reduce((arr: Signal[], signals: any[]) => arr.concat(signals), [])
+      .reduce((arr, signals) => arr.concat(signals), [])
       .map((signal) => signal.receiver)
       .reduce((arr, receivers) => arr.concat(receivers), [])
       .filter((recv, idx, array) => array.indexOf(recv) === idx)

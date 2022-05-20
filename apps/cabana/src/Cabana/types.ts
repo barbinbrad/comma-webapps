@@ -1,3 +1,5 @@
+import DBC from '../services/dbc';
+
 export type Props = {
   autoplay: boolean;
   startTime: number;
@@ -11,6 +13,8 @@ export type Props = {
   sig?: string;
   isLegacyShare?: boolean;
   isShare?: boolean;
-  dbc?: any;
+  dbc?: DBC;
   dbcFilename?: string;
+  githubAuthToken?: string;
+  unlogger: boolean;
 };
