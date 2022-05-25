@@ -1,3 +1,4 @@
+import moment from 'moment';
 import CorollaDBC from './dbc/corolla';
 
 export const demoLogUrls = [
@@ -131,4 +132,11 @@ export const demoProps = {
   dbc: CorollaDBC,
   isDemo: true,
   dbcFilename: 'toyota_nodsu_pt_generated.dbc',
+};
+
+export const demoRoute = {
+  fullname: '3533c53bb29502d1|2019-12-10--01-13-27',
+  proclog: demoProps.max,
+  start_time: moment(demoProps.name, 'YYYY-MM-DD--H-m-s'),
+  url: 'https://chffrprivate.blob.core.windows.net/chffrprivate3-permanent/v2/3533c53bb29502d1/02505e68c591e4160b38210fa5f8d44a_2019-12-10--01-13-27',
 };

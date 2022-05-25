@@ -88,16 +88,16 @@ export default class Panda implements PandaDevice {
   }
 
   // not used anymore, but is nice for reference
-  async nextFakeMessage() {
-    await wait(10);
+  // async nextFakeMessage() {
+  //   await wait(10);
 
-    return packCAN({
-      address: 0,
-      busTime: ~~(Math.random() * 65000),
-      data: Buffer.from("".padEnd(16, "0")),
-      bus: 0,
-    });
-  }
+  //   return packCAN({
+  //     address: 0,
+  //     busTime: ~~(Math.random() * 65000),
+  //     data: Buffer.from("".padEnd(16, "0")),
+  //     bus: 0,
+  //   });
+  // }
 
   async nextMessage() {
     let result: USBInTransferResult | null = null;
@@ -105,10 +105,12 @@ export default class Panda implements PandaDevice {
     if (this.device) {
       while (result === null) {
         try {
+          // eslint-disable-next-line no-await-in-loop
           result = await this.device?.transferIn(1, BUFFER_SIZE);
         } catch (err) {
           console.warn("can_recv failed, retrying");
           attempts = Math.min(++attempts, 10);
+          // eslint-disable-next-line no-await-in-loop
           await wait(attempts * 100);
         }
       }
@@ -116,6 +118,6 @@ export default class Panda implements PandaDevice {
       return result.data?.buffer;
     }
 
-    throw "Could not get next message because device is not defined";
+    throw new Error("Could not get next message because device is not defined");
   }
 }

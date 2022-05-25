@@ -1,7 +1,10 @@
-import { GITHUB_AUTH_TOKEN_KEY } from 'auth';
+import { config } from 'auth';
 import { demoProps } from '../data/demo';
 import storage from '../services/localStorage';
 import { Props } from './types';
+import { modifyQueryParameters } from '../utils/url';
+
+const { GITHUB_AUTH_TOKEN_KEY } = config;
 
 export default function getPropsFromParams(params: URLSearchParams): Props {
   const p = {
@@ -72,6 +75,7 @@ export default function getPropsFromParams(params: URLSearchParams): Props {
     props.githubAuthToken = p.authToken;
     storage.persistGithubAuthToken(p.authToken);
     const urlNoAuthToken = modifyQueryParameters({
+      add: {},
       remove: [GITHUB_AUTH_TOKEN_KEY],
     });
     window.location.href = urlNoAuthToken;
@@ -80,31 +84,4 @@ export default function getPropsFromParams(params: URLSearchParams): Props {
   }
 
   return props;
-}
-
-type ModifyQueryParams = {
-  remove: string[];
-};
-
-function modifyQueryParameters({ remove = [] }: ModifyQueryParams) {
-  const regex = /[?&]([^&#]+)=([^&#]*)/;
-  const results = regex.exec(window.location.search);
-
-  const params: { [key: string]: string } = {};
-  if (results != null) {
-    for (let i = 1; i < results.length - 1; i += 2) {
-      const key = results[i];
-      const value = results[i + 1];
-      params[key] = value;
-    }
-    Object.keys(params).forEach((key) => {
-      if (remove.indexOf(key) !== -1) {
-        delete params[key];
-      }
-    });
-  }
-
-  return `${window.location.origin + window.location.pathname}?${Object.keys(params)
-    .map((k) => `${k}=${encodeURIComponent(decodeURIComponent(params[k]))}`)
-    .join('&')}`;
 }

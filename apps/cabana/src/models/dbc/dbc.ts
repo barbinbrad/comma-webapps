@@ -1,41 +1,30 @@
 /* eslint-disable class-methods-use-this */
+import { IDbc } from '../../types';
 import Signal from './signal';
 import Frame from './frame';
 import BoardUnit from './boardunit';
 import utils from './utils';
-
-const DBC_COMMENT_RE = /^CM_ *"(.*)";/;
-const DBC_COMMENT_MULTI_LINE_RE = /^CM_ *"(.*)/;
-
-const MSG_RE = /^BO_ (\w+) (\w+) *: (\w+) (\w+)/;
-
-const SIGNAL_RE =
-  /^SG_ (\w+) : (\d+)\|(\d+)@(\d+)([+|-]) \(([0-9.+-eE]+),([0-9.+-eE]+)\) \[([0-9.+-eE]+)\|([0-9.+-eE]+)\] "(.*)" (.*)/;
-// Multiplexed signal
-const MP_SIGNAL_RE =
-  /^SG_ (\w+) (\w+) *: (\d+)\|(\d+)@(\d+)([+|-]) \(([0-9.+-eE]+),([0-9.+-eE]+)\) \[([0-9.+-eE]+)\|([0-9.+-eE]+)\] "(.*)" (.*)/;
-
-const VAL_RE = /^VAL_ (\w+) (\w+) (.*);/;
-const VAL_TABLE_RE = /^VAL_TABLE_ (\w+) (.*);/;
-
-const MSG_TRANSMITTER_RE = /^BO_TX_BU_ ([0-9]+) *: *(.+);/;
-
-const SIGNAL_COMMENT_RE = /^CM_ SG_ *(\w+) *(\w+) *"(.*)";/;
-const SIGNAL_COMMENT_MULTI_LINE_RE = /^CM_ SG_ *(\w+) *(\w+) *"(.*)/;
-
-// Message Comments (CM_ BO_ )
-const MESSAGE_COMMENT_RE = /^CM_ BO_ *(\w+) *"(.*)";/;
-const MESSAGE_COMMENT_MULTI_LINE_RE = /^CM_ BO_ *(\w+) *"(.*)/;
-
-const BOARD_UNIT_RE = /^BU_:(.*)/;
-const BOARD_UNIT_COMMENT_RE = /^CM_ BU_ *(\w+) *"(.*)";/;
-const BOARD_UNIT_COMMENT_MULTI_LINE_RE = /^CM_ BU_ *(\w+) *"(.*)/;
-
-// Follow ups are used to parse multi-line comment definitions
-const FOLLOW_UP_DBC_COMMENT = 'FollowUpDbcComment';
-const FOLLOW_UP_SIGNAL_COMMENT = 'FollowUpSignalComment';
-const FOLLOW_UP_MSG_COMMENT = 'FollowUpMsgComment';
-const FOLLOW_UP_BOARD_UNIT_COMMENT = 'FollowUpBoardUnitComment';
+import {
+  DBC_COMMENT_RE,
+  DBC_COMMENT_MULTI_LINE_RE,
+  MSG_RE,
+  SIGNAL_RE,
+  MP_SIGNAL_RE,
+  VAL_RE,
+  VAL_TABLE_RE,
+  MSG_TRANSMITTER_RE,
+  SIGNAL_COMMENT_RE,
+  SIGNAL_COMMENT_MULTI_LINE_RE,
+  MESSAGE_COMMENT_RE,
+  MESSAGE_COMMENT_MULTI_LINE_RE,
+  BOARD_UNIT_RE,
+  BOARD_UNIT_COMMENT_RE,
+  BOARD_UNIT_COMMENT_MULTI_LINE_RE,
+  FOLLOW_UP_DBC_COMMENT,
+  FOLLOW_UP_SIGNAL_COMMENT,
+  FOLLOW_UP_MSG_COMMENT,
+  FOLLOW_UP_BOARD_UNIT_COMMENT,
+} from './regex';
 
 function floatOrInt(numericStr: string): number {
   if (Number.isInteger(numericStr)) {
@@ -57,7 +46,7 @@ export function swapOrder(arr: string[], wordSize: number, gSize: number): strin
   return swappedWords.join('');
 }
 
-export default class DBC {
+export default class DBC implements IDbc {
   boardUnits: BoardUnit[];
 
   comments: string[];
@@ -67,6 +56,8 @@ export default class DBC {
   messages: Map<number, Frame>;
 
   valueTables: Map<string, Map<string, string>>;
+
+  lastUpdated?: number;
 
   constructor(dbcString?: string) {
     this.boardUnits = [];
@@ -593,7 +584,7 @@ export default class DBC {
     return parseFloat(`${ret}`) * signalSpec.factor + signalSpec.offset;
   }
 
-  getSignalValues(messageId: number, data: DataView) {
+  getSignalValues(messageId: number, data: Uint8Array) {
     const signalValuesByName: { [key: string]: number | bigint } = {};
     const frame = this.getMessageFrame(messageId);
     if (frame !== undefined) {

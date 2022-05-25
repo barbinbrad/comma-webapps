@@ -1,0 +1,23 @@
+import PandaAPI from "./lib/panda";
+import { PandaOptions } from "./lib/types";
+export declare const SAFETY_SILENT = 0;
+export declare const SAFETY_HONDA_NIDEC = 1;
+export declare const SAFETY_TOYOTA = 2;
+export declare const SAFETY_ELM327 = 3;
+export declare const SAFETY_GM = 4;
+export declare const SAFETY_HONDA_BOSCH_GIRAFFE = 5;
+export declare const SAFETY_FORD = 6;
+export declare const SAFETY_CADILLAC = 7;
+export declare const SAFETY_HYUNDAI = 8;
+export declare const SAFETY_CHRYSLER = 9;
+export declare const SAFETY_TESLA = 10;
+export declare const SAFETY_SUBARU = 11;
+export declare const SAFETY_MAZDA = 13;
+export declare const SAFETY_VOLKSWAGEN = 15;
+export declare const SAFETY_TOYOTA_IPAS = 16;
+export declare const SAFETY_ALLOUTPUT = 17;
+export declare const SAFETY_GM_ASCM = 18;
+export declare const SAFETY_NOOUTPUT = 19;
+export declare const SAFETY_HONDA_BOSCH_HARNESS = 20;
+export default function Panda(options: Partial<PandaOptions>): Promise<PandaAPI>;
+//# sourceMappingURL=index.d.ts.map

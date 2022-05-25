@@ -1,4 +1,4 @@
-import DBC from '../dbc';
+import DBC from '../../models/dbc';
 
 export const GITHUB_AUTH_TOKEN_LOCALSTORAGE_KEY = 'gh_auth_token';
 

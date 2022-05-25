@@ -1,0 +1,1 @@
+{"version":3,"file":"delay.d.ts","sourceRoot":"","sources":["../../../panda/src/lib/delay.ts"],"names":[],"mappings":"AAEA,qBAAa,WAAY,SAAQ,KAAK;gBACxB,OAAO,EAAE,MAAM;CAI5B;AAED,UAAU,kBAAkB,CAAC,CAAC,CAAE,SAAQ,OAAO,CAAC,CAAC,CAAC;IAChD,MAAM,EAAE,MAAM,IAAI,CAAC;CACpB;AAED,aAAK,YAAY,GAAG,kBAAkB,CAAC,MAAM,GAAG,OAAO,CAAC,CAAC;;AA8BzD,wBAAiC"}
