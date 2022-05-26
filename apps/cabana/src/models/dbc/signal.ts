@@ -1,7 +1,8 @@
 /* eslint-disable no-bitwise */
+import { ISignal } from '../../types';
 import utils from './utils';
 
-export default class Signal {
+export default class Signal implements ISignal {
   name: string;
 
   startBit: number;

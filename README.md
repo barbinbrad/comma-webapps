@@ -34,6 +34,14 @@ Just pick something and work on it. Take liberties or don't. There are three bas
 
 ## Running Locally
 
+[Turborepo](https://turborepo.org/) relies on relies on [workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces). Make sure that your `npm -v` is higher than 8.0. The best way to do this is to install `asdf` and then run:
+
+```bash
+asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git
+asdf install nodejs 16.15.0
+asdf reshim nodejs
+```
+
 To run all of the apps, run:
 
 ```bash
@@ -42,7 +50,7 @@ npm run build # TODO: we shouldn't have to do this
 npm run dev
 ```
 
-The monorepo relies heavily on [workspaces](https://docs.npmjs.com/cli/v8/using-npm/workspaces). To add a 3rd party package to a particular app (`cabana`, for example) run:
+To add a 3rd party package to a particular app (`cabana`, for example) run:
 
 ```bash
 npm install @awesome/package -w cabana

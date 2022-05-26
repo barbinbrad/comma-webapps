@@ -1,6 +1,7 @@
 import Signal from './signal';
+import { IFrame, ISignal } from '../../types';
 
-export default class Frame {
+export default class Frame implements IFrame {
   name: string;
 
   id: number;
@@ -56,7 +57,7 @@ export default class Frame {
 
   text() {
     const signals = Object.values(this.signals)
-      .map((signal: Signal) => ` ${signal.text()}`) // indent
+      .map((signal: ISignal) => ` ${signal.text()}`) // indent
       .join('\n');
 
     if (signals.length > 0) {

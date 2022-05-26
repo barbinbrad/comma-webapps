@@ -1,12 +1,17 @@
+import { config } from 'auth';
 import { demoProps } from '../data/demo';
 import storage from '../services/localStorage';
 import { Props } from './types';
+import { modifyQueryParameters } from '../utils/url';
+
+const { GITHUB_AUTH_TOKEN_KEY } = config;
 
 export default function getPropsFromParams(params: URLSearchParams): Props {
   const p = {
     route: params.get('route'),
     demo: !!params.get('demo'),
     segments: params.get('segments'),
+    authToken: params.get(GITHUB_AUTH_TOKEN_KEY),
   };
 
   let segments;
@@ -24,6 +29,7 @@ export default function getPropsFromParams(params: URLSearchParams): Props {
     startTime: Number(params.get('seekTime') || 0),
     segments,
     isDemo: p.demo,
+    unlogger: !!params.get('unlogger'),
   };
 
   let persistedDbc = null;
@@ -63,6 +69,18 @@ export default function getPropsFromParams(params: URLSearchParams): Props {
     const { dbcFilename, dbc } = persistedDbc;
     props.dbc = dbc;
     props.dbcFilename = dbcFilename;
+  }
+
+  if (p.authToken !== null) {
+    props.githubAuthToken = p.authToken;
+    storage.persistGithubAuthToken(p.authToken);
+    const urlNoAuthToken = modifyQueryParameters({
+      add: {},
+      remove: [GITHUB_AUTH_TOKEN_KEY],
+    });
+    window.location.href = urlNoAuthToken;
+  } else {
+    props.githubAuthToken = storage.fetchPersistedGithubAuthToken();
   }
 
   return props;

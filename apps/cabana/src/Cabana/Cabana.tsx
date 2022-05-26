@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {
   AspectRatio,
   Button,
@@ -9,41 +8,21 @@ import {
   HStack,
   VStack,
   Spinner,
-  useColorMode,
 } from '@chakra-ui/react';
 import { FaRegEdit } from 'react-icons/fa';
-import PandaAPI from 'panda';
-import Panda from 'panda/dist/module/lib/panda';
+import useCabana from './useCabana';
+
 import Navigation from '../components/Navigation';
 import { Props } from './types';
 import snapshot from '../data/snapshot.jpg';
 
-export default function Cabana(props: Props) {
-  const [panda, setPanda] = React.useState<Panda | null>(null);
-  const { colorMode } = useColorMode();
+export default function Container(props: Props) {
+  const state = useCabana(props);
+  return <Cabana {...state} />;
+}
 
-  const borderColor = colorMode !== 'dark' ? 'gray.200' : 'whiteAlpha.300';
-
-  React.useEffect(() => {
-    console.log({ props });
-    initializePanda();
-
-    async function initializePanda() {
-      const p = await PandaAPI({});
-      setPanda(p);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (panda) {
-      console.log({ panda });
-      panda.onMessage(processStreamedCanMessages);
-    }
-  }, [panda]);
-
-  const processStreamedCanMessages = React.useCallback((newCanMessages: any) => {
-    console.log(newCanMessages);
-  }, []);
+function Cabana(props: ReturnType<typeof useCabana>) {
+  const { borderColor } = props;
 
   return (
     <VStack h="100vh" w="100vw" spacing={0}>

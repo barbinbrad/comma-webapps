@@ -29,13 +29,13 @@ export default class Panda {
 
   needsFlush: boolean;
 
-  onMessage: (fn: any) => void;
+  onMessage: (fn: unknown) => void;
 
-  onError: (fn: any) => void;
+  onError: (fn: unknown) => void;
 
-  onConnect: (fn: any) => void;
+  onConnect: (fn: unknown) => void;
 
-  onDisconnect: (fn: any) => void;
+  onDisconnect: (fn: unknown) => void;
 
   flushEvent?: () => void;
 

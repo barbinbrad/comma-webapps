@@ -44,6 +44,7 @@ module.exports = {
           "off",
           { devDependencies: ["**/?(*.)+(spec|test).[jt]s"] },
         ],
+        "no-plusplus": 0,
       },
     },
   ],
