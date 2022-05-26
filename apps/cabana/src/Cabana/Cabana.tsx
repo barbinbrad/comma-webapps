@@ -59,7 +59,7 @@ function Cabana(props: ReturnType<typeof useCabana>) {
             direction="column"
             h="full"
             w="full"
-            maxWidth={520}
+            maxWidth={580}
             borderRightColor={borderColor}
             borderRightWidth={1}
             overflow="scroll"

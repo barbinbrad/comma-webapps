@@ -33,7 +33,6 @@ import {
   SharedSignature,
   SpawnWorkerOptions,
   WorkerHashMap,
-  WorkerState,
 } from '../types';
 import { hash } from '../utils/string';
 import { modifyQueryParameters } from '../utils/url';

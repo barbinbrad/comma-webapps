@@ -205,16 +205,16 @@ const utils = {
     return message;
   },
 
-  // maxMessageSize(message, initial = 8) {
-  //   let max = initial;
-  //   for (const entry of message.entries) {
-  //     const data = Buffer.from(entry.hexData, 'hex');
-  //     if (data.length > max) {
-  //       max = data.length;
-  //     }
-  //   }
-  //   return max;
-  // },
+  maxMessageSize(message: Message, initial = 8) {
+    let max = initial;
+    for (const entry of message.entries) {
+      const data = Buffer.from(entry.hexData, 'hex');
+      if (data.length > max) {
+        max = data.length;
+      }
+    }
+    return max;
+  },
 };
 
 const BIG_ENDIAN_START_BITS: number[] = [];

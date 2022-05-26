@@ -10,9 +10,10 @@ import {
   Tr,
   Th,
   Td,
-  TableContainer,
+  // TableContainer,
 } from '@chakra-ui/react';
 import { ckmeans } from 'simple-statistics';
+import MessageBytes from '../MessageBytes';
 import { Message, Messages, Route } from '../../types';
 
 export default function Meta(props: Props) {
@@ -84,7 +85,7 @@ export default function Meta(props: Props) {
     return (
       <Tr key={msg.id} onClick={() => props.onMessageSelected(msg.id)}>
         <Td borderColor={props.borderColor} fontSize={12}>
-          {msg.frame ? msg.frame.name : 'Untitled'}
+          {msg.frame ? msg.frame.name : ''}
         </Td>
         <Td borderColor={props.borderColor} fontSize={12}>
           {msg.id}
@@ -92,7 +93,17 @@ export default function Meta(props: Props) {
         <Td borderColor={props.borderColor} fontSize={12}>
           {msg.entries.length}
         </Td>
-        <Td borderColor={props.borderColor}></Td>
+        <Td borderColor={props.borderColor}>
+          <Box>
+            <MessageBytes
+              key={msg.id}
+              message={msg}
+              seekIndex={props.seekIndex}
+              seekTime={props.seekTime}
+              isLive={props.isLive}
+            />
+          </Box>
+        </Td>
       </Tr>
     );
   };
@@ -125,21 +136,21 @@ export default function Meta(props: Props) {
           placeholder="Search"
         />
       </Box>
-      <TableContainer>
-        <Table variant="simple" size="sm" borderColor={props.borderColor}>
-          <Thead>
-            <Tr>
-              <Th borderColor={props.borderColor}>Name</Th>
-              <Th borderColor={props.borderColor}>ID</Th>
-              <Th borderColor={props.borderColor} isNumeric>
-                Count
-              </Th>
-              <Th borderColor={props.borderColor}>Bytes</Th>
-            </Tr>
-          </Thead>
-          <Tbody>{renderCanMessages()}</Tbody>
-        </Table>
-      </TableContainer>
+      {/* <TableContainer> */}
+      <Table variant="simple" size="sm" borderColor={props.borderColor}>
+        <Thead>
+          <Tr>
+            <Th borderColor={props.borderColor}>Name</Th>
+            <Th borderColor={props.borderColor}>ID</Th>
+            <Th borderColor={props.borderColor} isNumeric>
+              Count
+            </Th>
+            <Th borderColor={props.borderColor}>Bytes</Th>
+          </Tr>
+        </Thead>
+        <Tbody>{renderCanMessages()}</Tbody>
+      </Table>
+      {/* </TableContainer> */}
     </>
   );
 }

@@ -94,12 +94,12 @@ export default function Navigation() {
               href="https://discord.com/channels/469524606043160576/932379632261562368"
               title="Discord"
             >
-              <IconButton aria-label="Discord" onClick={toggleColorMode} icon={<FaDiscord />} />
+              <IconButton aria-label="Discord" icon={<FaDiscord />} />
             </chakra.a>
           </Tooltip>
           <Tooltip label="GitHub">
             <chakra.a href="https://github.com/commaai" title="GitHub">
-              <IconButton aria-label="GitHub" onClick={toggleColorMode} icon={<BsGithub />} />
+              <IconButton aria-label="GitHub" icon={<BsGithub />} />
             </chakra.a>
           </Tooltip>
           <Tooltip label={colorMode !== 'dark' ? 'Dark Mode' : 'Light Mode'}>
