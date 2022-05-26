@@ -51,25 +51,26 @@ export default function useCabana(props: Props) {
   const isMounted = useRef(false);
   const [messages, setMessages] = useState<Messages>({});
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
-  const [selectedMessages, setSelectedMessages] = useState([]);
+  const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
+  const [selectedMessages, setSelectedMessages] = useState<string[]>([]);
   const [route, setRoute] = useState<Route | null>(null);
   const [canFrameOffset, setCanFrameOffset] = useState(0);
   const [routeInitTime, setRouteInitTime] = useState(0);
   const [firstFrameTime, setFirstFrameTime] = useState(0);
   const [firstCanTime, setFirstCanTime] = useState<number | null>(null);
   const [lastBusTime, setLastBusTime] = useState<number | null>(null);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [currentParts, setCurrentParts] = useState([0, 0]);
+  const [currentParts, setCurrentParts] = useState<[number, number]>([0, 0]);
   const [currentPart, setCurrentPart] = useState(0);
   const [currentWorker, setCurrentWorker] = useState<string | null>(null);
   const [currentWorkers, setCurrentWorkers] = useState<WorkerHashMap>({});
   const [loadingParts, setLoadingParts] = useState<number[]>([]);
   const [loadedParts, setLoadedParts] = useState<number[]>([]);
   const [loadMessagesFromCacheRunning, setLoadMessagesFromCacheRunning] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showLoadDbc, setShowLoadDbc] = useState(false);
-  const [showEditMessageModal, setShowEditMessageModal] = useState(false);
-  const [editMessageModalMessage, setEditMessageModalMessage] = useState(null);
+  const [showingOnboarding, setShowingOnboarding] = useState(false);
+  const [showingLoadDbc, setShowingLoadDbc] = useState(false);
+  const [showingSaveDbc, setShowingSaveDbc] = useState(false);
+  const [showingEditMessageModal, setShowingEditMessageModal] = useState(false);
+  const [editMessageModalMessage, setEditMessageModalMessage] = useState<string | null>(null);
   // TODO: dbc, and dbcText should be refactored to a useDBC() hook
   const [dbc, setDbc] = useState(props.dbc ? props.dbc : new DBC());
   const [dbcText, setDbcText] = useState(props.dbc ? props.dbc.text() : new DBC().text());
@@ -120,7 +121,6 @@ export default function useCabana(props: Props) {
       setCurrentPart(0);
       setRoute(demoRoute);
     } else if (isLegacyShare) {
-      // legacy share? maybe dead code
       const startTime = moment(name, 'YYYY-MM-DD--H-m-s');
 
       setCurrentParts([0, Math.min(max || 0, PART_SEGMENT_LENGTH - 1)]);
@@ -152,6 +152,7 @@ export default function useCabana(props: Props) {
       } else {
         logUrlsPromise = RawDataApi.getLogUrls(routeName);
       }
+
       Promise.all([routePromise, logUrlsPromise])
         .then((initData) => {
           const [routeResult, logUrlsResult] = initData;
@@ -220,7 +221,9 @@ export default function useCabana(props: Props) {
 
   useEffect(() => {
     if (currentWorker) {
+      console.log(`starting currentWorker ${currentWorker}`);
       const { part, worker, prevMsgEntries } = currentWorkers[currentWorker];
+
       worker.onmessage = onRLogMessagesProcessed(currentWorker, prevMsgEntries);
       const rawlog: RawLogWorkerInput = {
         // old stuff for reverse compatibility for easier testing
@@ -272,8 +275,8 @@ export default function useCabana(props: Props) {
     ) {
       window.sessionStorage.setItem('onboardingPath', window.location.href);
     }
-    setShowOnboarding(true);
-  }, [setShowOnboarding]);
+    setShowingOnboarding(true);
+  }, [setShowingOnboarding]);
 
   const spawnWorker = useCallback(
     (options: SpawnWorkerOptions = {}) => {
@@ -403,8 +406,8 @@ export default function useCabana(props: Props) {
 
     try {
       await panda?.start();
-      setShowOnboarding(false);
-      setShowLoadDbc(true);
+      setShowingOnboarding(false);
+      setShowingLoadDbc(true);
     } finally {
       setAttemptingPandaConnection(false);
     }
@@ -455,7 +458,7 @@ export default function useCabana(props: Props) {
         setMessages((prevMessages) => addAndRehydrateMessages(prevMessages, newMessages));
       }
     },
-    [currentParts, dbc],
+    [currentParts, dbc, setMessages],
   );
 
   const onRLogMessagesProcessed = useCallback(
@@ -468,9 +471,9 @@ export default function useCabana(props: Props) {
 
         const { part } = currentWorkers[workerHash];
 
-        setMaxByteStateChangeCount((prevMax) => {
-          return data.maxByteStateChangeCount > prevMax ? data.maxByteStateChangeCount : prevMax;
-        });
+        if (data.maxByteStateChangeCount > maxByteStateChangeCount) {
+          setMaxByteStateChangeCount(data.maxByteStateChangeCount);
+        }
 
         if (data.routeInitTime !== routeInitTime) {
           setRouteInitTime(data.routeInitTime);
@@ -479,7 +482,7 @@ export default function useCabana(props: Props) {
           setFirstFrameTime(data.firstFrameTime);
         }
 
-        if (data.newMessages) {
+        if (data.newMessages && Object.keys(data.newMessages).length) {
           addMessagesToDataCache(part, data.newMessages, data.newThumbnails);
         }
 
@@ -495,7 +498,13 @@ export default function useCabana(props: Props) {
           // }
         }
       },
-    [currentWorkers, routeInitTime, firstFrameTime, addMessagesToDataCache, spawnWorker],
+    [
+      currentWorkers,
+      routeInitTime,
+      firstFrameTime,
+      maxByteStateChangeCount,
+      addMessagesToDataCache,
+    ],
   );
 
   useEffect(() => {
@@ -521,11 +530,11 @@ export default function useCabana(props: Props) {
       setSeekTime(data.seekTime);
       setLastBusTime(data.lastBusTime);
       setFirstCanTime(data.firstCanTime);
-      if (data.maxByteStateChangeCount < maxByteStateChangeCount) {
-        setMaxByteStateChangeCount(data.maxByteStateChangeCount);
-      }
+      setMaxByteStateChangeCount((prevMax) =>
+        data.maxByteStateChangeCount > prevMax ? data.maxByteStateChangeCount : prevMax,
+      );
     },
-    [maxByteStateChangeCount, seekIndex, selectedMessages],
+    [seekIndex, selectedMessages, setMessages, setMaxByteStateChangeCount],
   );
 
   const enforceStreamingMessageWindow = useCallback((currentMessages: Messages) => {
@@ -552,9 +561,10 @@ export default function useCabana(props: Props) {
   const addAndRehydrateMessages = useCallback(
     (prevMessages: Messages, newMessages: Messages, options: any = {}) => {
       const currentMessages = { ...prevMessages };
+
       Object.keys(newMessages).forEach((key) => {
         // add message
-        if ('replace' in options && options.replace !== true && key in messages) {
+        if (options.replace !== true && key in prevMessages) {
           // should merge here instead of concat
           // assumes messages are always sequential
           const msgEntries = currentMessages[key].entries;
@@ -588,14 +598,11 @@ export default function useCabana(props: Props) {
         }
       });
 
-      setMaxByteStateChangeCount(DBCUtils.findMaxByteStateChangeCount(currentMessages));
+      const newCount = DBCUtils.findMaxByteStateChangeCount(currentMessages);
+      setMaxByteStateChangeCount(newCount);
 
       Object.keys(currentMessages).forEach((key) => {
-        // console.log(key);
-        currentMessages[key] = DBCUtils.setMessageByteColors(
-          currentMessages[key],
-          maxByteStateChangeCount,
-        );
+        currentMessages[key] = DBCUtils.setMessageByteColors(currentMessages[key], newCount);
       });
 
       return currentMessages;
@@ -609,43 +616,46 @@ export default function useCabana(props: Props) {
     }
   }, [onStreamedCanMessagesProcessed, enforceStreamingMessageWindow, addAndRehydrateMessages]);
 
-  const parseMessageEntry = (_message: Message, lastMsg: MessageEntry | null = null) => {
-    const msg = _message;
-    dbc.lastUpdated = dbc.lastUpdated || Date.now();
-    msg.lastUpdated = dbc.lastUpdated;
-    msg.frame = dbc.getMessageFrame(msg.address);
+  const parseMessageEntry = useCallback(
+    (_message: Message, lastMsg: MessageEntry | null = null) => {
+      const msg = _message;
+      dbc.lastUpdated = dbc.lastUpdated || Date.now();
+      msg.lastUpdated = dbc.lastUpdated;
+      msg.frame = dbc.getMessageFrame(msg.address);
 
-    let prevMsgEntry = lastMsg;
-    const internalByteStateChangeCounts: number[][] = [];
-    // entry.messages[id].byteStateChangeCounts = byteStateChangeCounts.map(
-    //   (count, idx) => entry.messages[id].byteStateChangeCounts[idx] + count
-    // );
-    msg.entries = msg.entries.map((entry) => {
-      // TODO: this will never be evaluated now that hexData is requried
-      const internalEntry = entry.hexData
-        ? DBCUtils.reparseMessage(dbc, entry, prevMsgEntry)
-        : DBCUtils.parseMessage(
-            dbc,
-            entry.time,
-            entry.address,
-            entry.data,
-            entry.timeStart,
-            prevMsgEntry,
-          );
-      internalByteStateChangeCounts.push(internalEntry.byteStateChangeCounts);
-      prevMsgEntry = internalEntry.msgEntry;
-      return internalEntry.msgEntry;
-    });
+      let prevMsgEntry = lastMsg;
+      const internalByteStateChangeCounts: number[][] = [];
+      // entry.messages[id].byteStateChangeCounts = byteStateChangeCounts.map(
+      //   (count, idx) => entry.messages[id].byteStateChangeCounts[idx] + count
+      // );
+      msg.entries = msg.entries.map((entry) => {
+        // TODO: this will never be evaluated now that hexData is requried
+        const internalEntry = entry.hexData
+          ? DBCUtils.reparseMessage(dbc, entry, prevMsgEntry)
+          : DBCUtils.parseMessage(
+              dbc,
+              entry.time,
+              entry.address,
+              entry.data,
+              entry.timeStart,
+              prevMsgEntry,
+            );
+        internalByteStateChangeCounts.push(internalEntry.byteStateChangeCounts);
+        prevMsgEntry = internalEntry.msgEntry;
+        return internalEntry.msgEntry;
+      });
 
-    msg.byteStateChangeCounts = internalByteStateChangeCounts.reduce((memo, val) => {
-      if (!memo || memo.length === 0) {
-        return val;
-      }
-      return memo.map((count, idx) => val[idx] + count);
-    }, []);
+      msg.byteStateChangeCounts = internalByteStateChangeCounts.reduce((memo, val) => {
+        if (!memo || memo.length === 0) {
+          return val;
+        }
+        return memo.map((count, idx) => val[idx] + count);
+      }, []);
 
-    return msg;
-  };
+      return msg;
+    },
+    [dbc],
+  );
 
   const firstEntryIndexInsideStreamingWindow = (entries: MessageEntry[]) => {
     const lastEntryTime = entries[entries.length - 1].relTime;
@@ -660,55 +670,66 @@ export default function useCabana(props: Props) {
     return 0;
   };
 
-  const getParseSegment = async (part: number) => {
-    if (!dataCache[part]) {
-      return null;
-    }
-    if (dataCache[part].promise) {
-      await dataCache[part].promise;
-    }
-    dataCache[part].promise = getParseSegmentInternal(part);
-
-    return dataCache[part].promise;
-  };
-
-  const getParseSegmentInternal = async (part: number): Promise<DataCache | undefined> => {
-    const start = performance.now();
-    if (dbc.lastUpdated === undefined) {
-      dbc.lastUpdated = Date.now();
-    }
-
-    let reparsedMessages: Messages = {};
-    let currentMessages = dataCache[part].messages;
-    const { lastUpdated } = dbc;
-
-    Object.keys(currentMessages).forEach((key) => {
-      if (currentMessages[key].lastUpdated >= lastUpdated) {
-        return;
+  const getParseSegmentInternal = useCallback(
+    async (part: number): Promise<DataCache | undefined> => {
+      const start = performance.now();
+      if (dbc.lastUpdated === undefined) {
+        dbc.lastUpdated = Date.now();
       }
-      reparsedMessages[key] = currentMessages[key];
-    });
 
-    if (Object.keys(reparsedMessages).length) {
-      console.log('Reparsing messages!', Object.keys(reparsedMessages).length);
-      reparsedMessages = await reparseMessages(reparsedMessages);
-    }
+      let reparsedMessages: Messages = {};
+      let currentMessages = dataCache[part].messages;
+      const { lastUpdated } = dbc;
 
-    currentMessages = {
-      ...currentMessages,
-      ...reparsedMessages,
-    };
+      Object.keys(currentMessages).forEach((key) => {
+        if (currentMessages[key].lastUpdated >= lastUpdated) {
+          return;
+        }
+        reparsedMessages[key] = currentMessages[key];
+      });
 
-    dataCache[part].messages = currentMessages;
+      if (Object.keys(reparsedMessages).length) {
+        console.log('Reparsing messages!', Object.keys(reparsedMessages).length);
+        reparsedMessages = await reparseMessages(reparsedMessages);
+      }
 
-    const end = performance.now();
-    if (end - start > 200) {
-      // warn about anything over 200ms
-      console.warn('getParseSegment took', part, end - start, Object.keys(currentMessages).length);
-    }
+      currentMessages = {
+        ...currentMessages,
+        ...reparsedMessages,
+      };
 
-    return dataCache[part];
-  };
+      dataCache[part].messages = currentMessages;
+
+      const end = performance.now();
+      if (end - start > 200) {
+        // warn about anything over 200ms
+        console.warn(
+          'getParseSegment took',
+          part,
+          end - start,
+          Object.keys(currentMessages).length,
+        );
+      }
+
+      return dataCache[part];
+    },
+    [dbc],
+  );
+
+  const getParseSegment = useCallback(
+    async (part: number) => {
+      if (!dataCache[part]) {
+        return null;
+      }
+      if (dataCache[part].promise) {
+        await dataCache[part].promise;
+      }
+      dataCache[part].promise = getParseSegmentInternal(part);
+
+      return dataCache[part].promise;
+    },
+    [getParseSegmentInternal],
+  );
 
   // const decacheMessageId = (messageId: string) => {
   //   Object.keys(dataCache).forEach((part) => {
@@ -719,34 +740,106 @@ export default function useCabana(props: Props) {
   //   });
   // };
 
-  const reparseMessages = async (reparsedMessages: Messages): Promise<Messages> => {
-    dbc.lastUpdated = dbc.lastUpdated || Date.now();
+  const reparseMessages = useCallback(
+    async (reparsedMessages: Messages): Promise<Messages> => {
+      dbc.lastUpdated = dbc.lastUpdated || Date.now();
 
-    Object.keys(reparsedMessages).forEach((key) => {
-      reparsedMessages[key].frame = dbc.getMessageFrame(reparsedMessages[key].address);
-    });
-
-    return new Promise((resolve) => {
-      const worker = new MessageParser();
-      worker.onmessage = (e: MessageEvent<MessageParserWorkerOutput>) => {
-        const newMessages = e.data.messages;
-        Object.keys(newMessages).forEach((key) => {
-          newMessages[key].lastUpdated = dbc.lastUpdated!;
-          newMessages[key].frame = dbc.getMessageFrame(newMessages[key].address);
-        });
-        resolve(newMessages);
-      };
-
-      worker.postMessage({
-        messages,
-        dbcText: dbc.text(),
-        canStartTime: firstCanTime,
+      Object.keys(reparsedMessages).forEach((key) => {
+        reparsedMessages[key].frame = dbc.getMessageFrame(reparsedMessages[key].address);
       });
-    });
+
+      return new Promise((resolve) => {
+        const worker = new MessageParser();
+        worker.onmessage = (e: MessageEvent<MessageParserWorkerOutput>) => {
+          const newMessages = e.data.messages;
+          Object.keys(newMessages).forEach((key) => {
+            newMessages[key].lastUpdated = dbc.lastUpdated!;
+            newMessages[key].frame = dbc.getMessageFrame(newMessages[key].address);
+          });
+          resolve(newMessages);
+        };
+
+        worker.postMessage({
+          messages,
+          dbcText: dbc.text(),
+          canStartTime: firstCanTime,
+        });
+      });
+    },
+    [dbc],
+  );
+
+  const showEditMessageModal = useCallback(
+    (msgKey: string) => {
+      const msg = messages[msgKey];
+      console.log(msg);
+      if (!msg.frame) {
+        msg.frame = dbc.createFrame(msg.address); // TODO frameSize
+      }
+
+      setShowingEditMessageModal(true);
+      setEditMessageModalMessage(msgKey);
+    },
+    [messages, dbc],
+  );
+
+  const hideEditMessageModal = useCallback(() => {
+    setShowingEditMessageModal(false);
+  }, []);
+
+  const onMessageSelected = useCallback(
+    (msgKey: string) => {
+      const msg = messages[msgKey];
+
+      let newSeekIndex = seekIndex;
+
+      if (seekTime > 0 && msg.entries.length > 0) {
+        newSeekIndex = msg.entries.findIndex((e) => e.relTime >= seekTime);
+        if (seekIndex === -1) {
+          newSeekIndex = 0;
+        }
+
+        setSeekTime(msg.entries[seekIndex].relTime);
+      }
+
+      setSeekIndex(newSeekIndex);
+      setSelectedMessage(msgKey);
+    },
+    [seekTime, seekIndex, messages],
+  );
+
+  const onMessageUnselected = useCallback(() => {
+    setSelectedMessage(null);
+  }, [setSelectedMessage]);
+
+  const downloadLogAsCSV = () => {
+    // TODO: implement
+    console.log('Downloading log as CSV');
   };
 
   return {
     borderColor,
+    currentParts,
+    dbcFilename,
+    dbcLastSaved,
+    dongleId,
+    isDemo,
+    isLive,
+    messages,
+    name,
+    seekIndex,
+    seekTime,
+    selectedMessages,
+    shareUrl,
+    showingLoadDbc,
+    showingSaveDbc,
+    route,
+    downloadLogAsCSV,
     handlePandaConnect,
+    hideEditMessageModal,
+    onMessageSelected,
+    onMessageUnselected,
+    setSelectedMessages,
+    showEditMessageModal,
   };
 }

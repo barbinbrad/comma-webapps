@@ -11,10 +11,11 @@ import {
 } from '@chakra-ui/react';
 import { FaRegEdit } from 'react-icons/fa';
 import useCabana from './useCabana';
-
+import Meta from '../components/Meta';
 import Navigation from '../components/Navigation';
-import { Props } from './types';
 import snapshot from '../data/snapshot.jpg';
+import { Props } from './types';
+import debounce from '../utils/debounce';
 
 export default function Container(props: Props) {
   const state = useCabana(props);
@@ -22,7 +23,29 @@ export default function Container(props: Props) {
 }
 
 function Cabana(props: ReturnType<typeof useCabana>) {
-  const { borderColor } = props;
+  const {
+    borderColor,
+    currentParts,
+    dbcFilename,
+    dbcLastSaved,
+    dongleId,
+    isDemo,
+    isLive,
+    messages,
+    name,
+    route,
+    seekIndex,
+    seekTime,
+    selectedMessages,
+    shareUrl,
+    showingLoadDbc,
+    showingSaveDbc,
+    downloadLogAsCSV,
+    onMessageSelected,
+    onMessageUnselected,
+    setSelectedMessages,
+    showEditMessageModal,
+  } = props;
 
   return (
     <VStack h="100vh" w="100vw" spacing={0}>
@@ -36,32 +59,37 @@ function Cabana(props: ReturnType<typeof useCabana>) {
             direction="column"
             h="full"
             w="full"
-            maxWidth={410}
+            maxWidth={520}
             borderRightColor={borderColor}
             borderRightWidth={1}
             overflow="scroll"
           >
-            <Input
-              size="sm"
-              borderRadius={0}
-              borderTopWidth={0}
-              borderLeftWidth={0}
-              borderRightWidth={0}
-              borderBottomWidth={1}
+            <Meta
               borderColor={borderColor}
-              placeholder="Search"
+              url={route ? route.url : null}
+              messages={messages}
+              selectedMessages={selectedMessages}
+              setSelectedMessages={setSelectedMessages}
+              showEditMessageModal={showEditMessageModal}
+              currentParts={currentParts}
+              onMessageSelected={onMessageSelected}
+              onMessageUnselected={onMessageUnselected}
+              showingLoadDbc={showingLoadDbc}
+              showingSaveDbc={showingSaveDbc}
+              dbcFilename={dbcFilename}
+              dbcLastSaved={dbcLastSaved}
+              dongleId={dongleId}
+              name={name}
+              route={route}
+              seekTime={seekTime}
+              seekIndex={seekIndex}
+              shareUrl={shareUrl}
+              isDemo={isDemo}
+              isLive={isLive}
+              saveLog={debounce(downloadLogAsCSV, 500)}
             />
-            <Center h="full">
-              <Spinner
-                thickness="4px"
-                speed="1s"
-                emptyColor={borderColor}
-                color="brand.500"
-                size="xl"
-              />
-            </Center>
           </Flex>
-          <Flex
+          {/* <Flex
             as="main"
             h="full"
             w="full"
@@ -82,7 +110,7 @@ function Cabana(props: ReturnType<typeof useCabana>) {
             >
               STEER_ANGLE_SENSOR
             </Button>
-          </Flex>
+          </Flex> */}
           <Flex as="aside" h="full" w="full" overflow="scroll">
             <AspectRatio w="full" maxHeight="full" ratio={4 / 3}>
               <Image src={snapshot} />

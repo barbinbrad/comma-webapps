@@ -1,7 +1,7 @@
 import { extendTheme } from '@chakra-ui/react';
 import { mode } from '@chakra-ui/theme-tools';
 
-const colors = {
+export const colors = {
   brand: {
     50: '#86fb8f',
     100: '#70ff7b',
@@ -23,6 +23,13 @@ const theme = extendTheme({
   },
   colors,
   components: {
+    Table: {
+      sizes: {
+        small: {
+          color: 'red.100',
+        },
+      },
+    },
     Button: {
       variants: {
         solid: (props: { colorScheme: string }) => {
