@@ -3,12 +3,11 @@
   "extends": "./base.json",
   "Display": "Vite",
   "compilerOptions": {
-    "types": ["vite/client"],
+    "types": ["vite/client", ""],
     "lib": ["dom", "webworker", "esnext"],
-    "target": "esnext",
     "module": "esnext",
     "noEmit": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "jsx": "react-jsx"
   }
 }

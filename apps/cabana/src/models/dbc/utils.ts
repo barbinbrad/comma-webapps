@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
 import { theme } from 'design';
+import { Buffer } from 'buffer/';
 import {
   ByteStateChangeCounts,
   CanMessage,

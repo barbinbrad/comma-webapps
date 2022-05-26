@@ -48,6 +48,19 @@ export interface IDbc {
   getSignalValues: (address: number, data: Uint8Array) => { [key: string]: number | bigint };
 }
 
+export interface ICacheEntry {
+  batching: boolean;
+  dbc: IDbc;
+  ended: boolean;
+  logUrls: string[];
+  part: number;
+  messages: Messages;
+  thumbnails: Thumbnail[];
+  options: any;
+  sendBatch: () => void;
+  loadData: () => void;
+}
+
 export type ByteStateChangeCounts = { [key: string]: number[] };
 
 export type CanMessage = {
@@ -73,6 +86,30 @@ export type CanWorkerOutput = {
   lastBusTime: number;
   firstCanTime: number;
   maxByteStateChangeCount: number;
+};
+
+export type CerealMessage = {
+  Can?: CerealCanMessage[];
+  Frame?: CerealFrame;
+  InitData: any;
+  LogMonoTime: number;
+  Thumbnail?: CerealThumbnail;
+};
+
+export type CerealFrame = {
+  FrameId: number;
+  TimestampEof: number;
+};
+
+export type CerealCanMessage = {
+  Address: number;
+  Src: number;
+  Dat: Buffer;
+  BusTime: number;
+};
+
+export type CerealThumbnail = {
+  Thumbnail: Buffer;
 };
 
 export type DataCache = {
@@ -101,7 +138,7 @@ export type MessageEntry = {
   time: number;
   timeStart: number;
   relTime: number;
-  hexData?: Buffer | string;
+  hexData?: any;
   byteStateChangeTimes?: number[];
   updated?: number;
 };
@@ -127,18 +164,20 @@ export type TimedCanMessages = {
 
 export type RawLogWorkerInput = {
   action?: string;
-  base: string;
+  base?: string;
   num: number;
   isDemo: boolean;
-  isLegacyShare: boolean;
-  logUrls: string[];
+  isLegacyShare?: boolean;
+  logUrls: string[] | null;
   dbc?: IDbc;
   dbcText: string;
   route: string;
   part: number;
-  canStartTime: number;
-  prevMsgEntries: { [key: string]: MessageEntry };
+  canStartTime: number | null;
+  prevMsgEntries?: { [key: string]: MessageEntry };
   maxByteStateChangeCount: number;
+  firstFrameTime: number | null;
+  routeInitTime: number | null;
 };
 
 export type RawLogWorkerOutput = {
@@ -169,4 +208,7 @@ export type SpawnWorkerOptions = {
 
 export type Thumbnail = {};
 
-export type WorkerHashMap = { [key: string]: { part: number; worker: Worker } };
+export type WorkerHashMap = {
+  [key: string]: { part: number; worker: Worker; prevMsgEntries?: { [key: string]: MessageEntry } };
+};
+export type WorkerState = { workerHash: string; prevMsgEntries?: { [key: string]: MessageEntry } };

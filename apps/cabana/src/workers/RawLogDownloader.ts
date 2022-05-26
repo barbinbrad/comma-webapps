@@ -1,13 +1,21 @@
 /* eslint-env worker */
 /* eslint-disable no-restricted-globals, no-param-reassign */
 // TODO: convert log_reader & capnp_ts to internal packages
-// import LogStream from '@commaai/log_reader';
-import { timeout } from 'thyming';
+import LogStream from '@commaai/log_reader';
 
 import RlogService from '../services/rlog/rlog';
 import utils from '../models/dbc/utils';
 import DBC from '../models/dbc';
-import { IDbc, Messages, MessageEntry, RawLogWorkerInput, Thumbnail } from '../types';
+import {
+  ICacheEntry,
+  IDbc,
+  CerealMessage,
+  CerealCanMessage,
+  Messages,
+  MessageEntry,
+  RawLogWorkerInput,
+  Thumbnail,
+} from '../types';
 
 /*  
     RawLogDownloader API
@@ -43,45 +51,8 @@ import { IDbc, Messages, MessageEntry, RawLogWorkerInput, Thumbnail } from '../t
 declare const self: DedicatedWorkerGlobalScope;
 const DEBOUNCE_DELAY = 100;
 
-interface ICacheEntry {
-  batching: boolean;
-  dbc: IDbc;
-  ended: boolean;
-  logUrls: string[];
-  part: number;
-  messages: Messages;
-  thumbnails: Thumbnail[];
-  options: any;
-  sendBatch: () => void;
-  loadData: () => void;
-}
-
-type CerealMessage = {
-  Can?: CerealCanMessage[];
-  Frame?: CerealFrame;
-  InitData: any;
-  LogMonoTime: number;
-  Thumbnail?: CerealThumbnail;
-};
-
-type CerealFrame = {
-  FrameId: number;
-  TimestampEof: number;
-};
-
-type CerealCanMessage = {
-  Address: number;
-  Src: number;
-  Dat: Buffer;
-  BusTime: number;
-};
-
-type CerealThumbnail = {
-  Thumbnail: Buffer;
-};
-
 class CacheEntry implements ICacheEntry {
-  options: any;
+  options: RawLogWorkerInput;
 
   messages: Messages;
 
@@ -100,21 +71,17 @@ class CacheEntry implements ICacheEntry {
   batching: boolean;
 
   constructor(options: RawLogWorkerInput) {
-    options = options || {};
     this.options = options;
 
     const { route, part, dbc, logUrls } = options;
-
     this.messages = {};
     this.thumbnails = [];
     this.route = route;
     this.part = part;
     this.dbc = dbc!;
-    this.logUrls = logUrls;
-    this.batching = true;
+    this.logUrls = logUrls || [];
+    this.batching = false;
     this.ended = false;
-    this.batching = true;
-    console.log(this);
   }
 
   insertCanMessage(logTime: number, msg: CerealCanMessage) {
@@ -132,8 +99,8 @@ class CacheEntry implements ICacheEntry {
       time: logTime,
       address,
       data,
-      timeStart: this.options.routeInitTime,
-      relTime: logTime - this.options.routeInitTime,
+      timeStart: this.options.routeInitTime!,
+      relTime: logTime - this.options.routeInitTime!,
     };
 
     this.messages[id].entries.push(msgEntry);
@@ -156,7 +123,7 @@ class CacheEntry implements ICacheEntry {
     }
 
     const res = await RlogService.getLogPart(this.logUrls[this.part]);
-    // const logReader = new LogStream(res);
+    const logReader = new LogStream(res);
 
     res.on('end', () => {
       console.log('Stream ended');
@@ -182,7 +149,7 @@ class CacheEntry implements ICacheEntry {
         const monoTime = msg.LogMonoTime / 1000000000;
         msg.Can!.forEach((m) => this.insertCanMessage(monoTime, m));
       } else if ('Thumbnail' in msg) {
-        const monoTime = msg.LogMonoTime / 1000000000 - this.options.routeInitTime;
+        const monoTime = msg.LogMonoTime / 1000000000 - this.options.routeInitTime!;
         const data = new Uint8Array(msg.Thumbnail!.Thumbnail);
         this.thumbnails.push({ data, monoTime });
       } else {
@@ -227,7 +194,11 @@ class CacheEntry implements ICacheEntry {
 
   queueBatch() {
     if (!this.batching) {
-      this.batching = timeout(this.sendBatch, DEBOUNCE_DELAY);
+      this.batching = true;
+      setTimeout(() => {
+        this.sendBatch();
+        this.batching = false;
+      }, DEBOUNCE_DELAY);
     }
   }
 }

@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable no-param-reassign */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { flushSync } from 'react-dom';
 import { useColorMode } from '@chakra-ui/react';
 import { raw as RawDataApi, drives as DrivesApi } from 'api';
 import CommaAuth, { storage as CommaAuthStorage, config as AuthConfig } from 'auth';
@@ -24,15 +23,17 @@ import {
   MessageEntry,
   Message,
   Messages,
+  MessageParserWorkerOutput,
   MessageTuple,
   TimedCanMessages,
   Thumbnail,
+  RawLogWorkerInput,
   RawLogWorkerOutput,
   Route,
   SharedSignature,
   SpawnWorkerOptions,
   WorkerHashMap,
-  MessageParserWorkerOutput,
+  WorkerState,
 } from '../types';
 import { hash } from '../utils/string';
 import { modifyQueryParameters } from '../utils/url';
@@ -47,7 +48,7 @@ export default function useCabana(props: Props) {
   const { dongleId, githubAuthToken, isDemo, isLegacyShare, name, unlogger } = props;
   const { colorMode } = useColorMode();
   const borderColor = colorMode !== 'dark' ? 'gray.200' : 'whiteAlpha.300';
-
+  const isMounted = useRef(false);
   const [messages, setMessages] = useState<Messages>({});
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -60,6 +61,7 @@ export default function useCabana(props: Props) {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [currentParts, setCurrentParts] = useState([0, 0]);
   const [currentPart, setCurrentPart] = useState(0);
+  const [currentWorker, setCurrentWorker] = useState<string | null>(null);
   const [currentWorkers, setCurrentWorkers] = useState<WorkerHashMap>({});
   const [loadingParts, setLoadingParts] = useState<number[]>([]);
   const [loadedParts, setLoadedParts] = useState<number[]>([]);
@@ -197,9 +199,12 @@ export default function useCabana(props: Props) {
   }, []);
 
   useEffect(() => {
-    if (currentParts.every((part) => part === 0)) return;
-    spawnWorker();
-  }, [currentParts]);
+    if (isMounted.current) {
+      spawnWorker();
+    } else {
+      isMounted.current = true;
+    }
+  }, [currentParts, partsLoaded]);
 
   useEffect(() => {
     if (githubAuthToken) {
@@ -212,6 +217,34 @@ export default function useCabana(props: Props) {
       panda.onMessage(processStreamedCanMessages);
     }
   }, [panda]);
+
+  useEffect(() => {
+    if (currentWorker) {
+      const { part, worker, prevMsgEntries } = currentWorkers[currentWorker];
+      worker.onmessage = onRLogMessagesProcessed(currentWorker, prevMsgEntries);
+      const rawlog: RawLogWorkerInput = {
+        // old stuff for reverse compatibility for easier testing
+        base: route?.url,
+        num: part,
+
+        // so that we don't try to read metadata about it...
+        isDemo,
+        isLegacyShare,
+        logUrls,
+
+        // data that is used
+        dbcText: dbc.text(),
+        route: route?.fullname!,
+        part,
+        canStartTime: firstCanTime != null ? firstCanTime - canFrameOffset : null,
+        prevMsgEntries,
+        maxByteStateChangeCount,
+        routeInitTime: null,
+        firstFrameTime: null,
+      };
+      worker.postMessage(rawlog);
+    }
+  }, [currentWorker, currentWorkers]);
 
   useInterval(() => {
     if (loadMessagesFromCacheRunning || loadedParts.length < 4) {
@@ -272,48 +305,30 @@ export default function useCabana(props: Props) {
       console.log('Starting worker for part', part);
       // options is object of {part, prevMsgEntries, spawnWorkerHash, prepend}
       options = options || {};
-      const { prevMsgEntries } = options || {};
+      let { prevMsgEntries } = options || {};
 
       if (!prevMsgEntries) {
+        prevMsgEntries = {};
         Object.keys(messages).forEach((key) => {
           const { entries } = messages[key];
           prevMsgEntries![key] = entries[entries.length - 1];
         });
       }
 
-      // var worker = new CanFetcher();
       const worker = new RawLogDownloader();
       const workerHash = hash(Math.random().toString(16));
 
       setLoadingParts([part, ...loadingParts]);
+      setCurrentWorker(workerHash);
       setCurrentWorkers((prevWorkers) => {
         return {
           ...prevWorkers,
           [workerHash]: {
             part,
             worker,
+            prevMsgEntries,
           },
         };
-      });
-
-      worker.onmessage = onRLogMessagesProcessed(workerHash, prevMsgEntries);
-      worker.postMessage({
-        // old stuff for reverse compatibility for easier testing
-        base: route?.url,
-        num: part,
-
-        // so that we don't try to read metadata about it...
-        isDemo,
-        isLegacyShare,
-        logUrls,
-
-        // data that is used
-        dbcText: dbc.text(),
-        route: route?.fullname,
-        part,
-        canStartTime: firstCanTime != null ? firstCanTime - canFrameOffset : null,
-        prevMsgEntries,
-        maxByteStateChangeCount,
       });
     },
     [
@@ -397,93 +412,6 @@ export default function useCabana(props: Props) {
     // if (unlisten) unlisten();
   };
 
-  const onRLogMessagesProcessed = useCallback(
-    (workerHash: string, prevMsgEntries: { [key: string]: MessageEntry } = {}) =>
-      ({ data }: MessageEvent<RawLogWorkerOutput>) => {
-        if (currentWorkers[workerHash] === undefined) {
-          console.log('Worker was canceled');
-          return;
-        }
-
-        const { part } = currentWorkers[workerHash];
-
-        setMaxByteStateChangeCount((prevMax) => {
-          return data.maxByteStateChangeCount > prevMax ? data.maxByteStateChangeCount : prevMax;
-        });
-
-        if (data.routeInitTime !== routeInitTime) {
-          setRouteInitTime(data.routeInitTime);
-        }
-        if (data.firstFrameTime && data.firstFrameTime !== firstFrameTime) {
-          setFirstFrameTime(data.firstFrameTime);
-        }
-
-        if (data.newMessages) {
-          addMessagesToDataCache(part, data.newMessages, data.newThumbnails);
-        }
-
-        if (data.isFinished) {
-          flushSync(() => {
-            setLoadingParts((prevLoadingParts) => prevLoadingParts.filter((p) => p !== part));
-            setLoadedParts((prevLoadedParts) => [part, ...prevLoadedParts]);
-            setPartsLoaded((prevPartsLoaded) => prevPartsLoaded + 1);
-          });
-
-          spawnWorker({ prevMsgEntries });
-
-          // TODO: do we need this?
-          // if (window.dataCallback) {
-          //   window.dataCallback();
-          //   window.dataCallback = null;
-          // }
-        }
-      },
-    [currentWorkers, loadedParts, loadingParts, partsLoaded, routeInitTime, firstFrameTime],
-  );
-
-  const onStreamedCanMessagesProcessed = useCallback(
-    ({ data }: MessageEvent<CanWorkerOutput>) => {
-      setMessages((prevMessages) => {
-        const newMessages = enforceStreamingMessageWindow(
-          addAndRehydrateMessages(prevMessages, data.newMessages),
-        );
-        if (selectedMessages.length > 0 && newMessages[selectedMessages[0]] !== undefined) {
-          setSeekIndex(Math.max(0, newMessages[selectedMessages[0]].entries.length - 1));
-        }
-        return newMessages;
-      });
-
-      setSeekTime(data.seekTime);
-      setLastBusTime(data.lastBusTime);
-      setFirstCanTime(data.firstCanTime);
-      if (data.maxByteStateChangeCount < maxByteStateChangeCount) {
-        setMaxByteStateChangeCount(data.maxByteStateChangeCount);
-      }
-    },
-    [maxByteStateChangeCount, seekIndex, selectedMessages],
-  );
-
-  const enforceStreamingMessageWindow = useCallback((currentMessages: Messages) => {
-    const messageIds = Object.keys(messages);
-    for (let i = 0; i < messageIds.length; i++) {
-      const messageId = messageIds[i];
-      const message = currentMessages[messageId];
-      if (message.entries.length < 2) {
-        continue;
-      }
-
-      const lastEntryTime = message.entries[message.entries.length - 1].relTime;
-      const entrySpan = (lastEntryTime || 0) - (message.entries[0].relTime || 0);
-      if (entrySpan > STREAMING_WINDOW) {
-        const newEntryFloor = firstEntryIndexInsideStreamingWindow(message.entries);
-        message.entries = message.entries.slice(newEntryFloor);
-        currentMessages[messageId] = message;
-      }
-    }
-
-    return currentMessages;
-  }, []);
-
   const addMessagesToDataCache = useCallback(
     async (part: number, newMessages: Messages, newThumbnails: Thumbnail[]) => {
       const entry = await getParseSegment(part);
@@ -530,43 +458,96 @@ export default function useCabana(props: Props) {
     [currentParts, dbc],
   );
 
-  const parseMessageEntry = (_message: Message, lastMsg: MessageEntry | null = null) => {
-    const msg = _message;
-    dbc.lastUpdated = dbc.lastUpdated || Date.now();
-    msg.lastUpdated = dbc.lastUpdated;
-    msg.frame = dbc.getMessageFrame(msg.address);
+  const onRLogMessagesProcessed = useCallback(
+    (workerHash: string, prevMsgEntries: { [key: string]: MessageEntry } = {}) =>
+      ({ data }: MessageEvent<RawLogWorkerOutput>) => {
+        if (currentWorkers[workerHash] === undefined) {
+          console.log('Worker was canceled');
+          return;
+        }
 
-    let prevMsgEntry = lastMsg;
-    const internalByteStateChangeCounts: number[][] = [];
-    // entry.messages[id].byteStateChangeCounts = byteStateChangeCounts.map(
-    //   (count, idx) => entry.messages[id].byteStateChangeCounts[idx] + count
-    // );
-    msg.entries = msg.entries.map((entry) => {
-      // TODO: this will never be evaluated now that hexData is requried
-      const internalEntry = entry.hexData
-        ? DBCUtils.reparseMessage(dbc, entry, prevMsgEntry)
-        : DBCUtils.parseMessage(
-            dbc,
-            entry.time,
-            entry.address,
-            entry.data,
-            entry.timeStart,
-            prevMsgEntry,
-          );
-      internalByteStateChangeCounts.push(internalEntry.byteStateChangeCounts);
-      prevMsgEntry = internalEntry.msgEntry;
-      return internalEntry.msgEntry;
+        const { part } = currentWorkers[workerHash];
+
+        setMaxByteStateChangeCount((prevMax) => {
+          return data.maxByteStateChangeCount > prevMax ? data.maxByteStateChangeCount : prevMax;
+        });
+
+        if (data.routeInitTime !== routeInitTime) {
+          setRouteInitTime(data.routeInitTime);
+        }
+        if (data.firstFrameTime && data.firstFrameTime !== firstFrameTime) {
+          setFirstFrameTime(data.firstFrameTime);
+        }
+
+        if (data.newMessages) {
+          addMessagesToDataCache(part, data.newMessages, data.newThumbnails);
+        }
+
+        if (data.isFinished) {
+          setLoadingParts((prevLoadingParts) => prevLoadingParts.filter((p) => p !== part));
+          setLoadedParts((prevLoadedParts) => [part, ...prevLoadedParts]);
+          setPartsLoaded((prevPartsLoaded) => prevPartsLoaded + 1);
+
+          // TODO: do we need this?
+          // if (window.dataCallback) {
+          //   window.dataCallback();
+          //   window.dataCallback = null;
+          // }
+        }
+      },
+    [currentWorkers, routeInitTime, firstFrameTime, addMessagesToDataCache, spawnWorker],
+  );
+
+  useEffect(() => {
+    // Update the message handlers when any dependencies change
+    Object.keys(currentWorkers).forEach((workerHash) => {
+      const { worker, prevMsgEntries } = currentWorkers[workerHash];
+      worker.onmessage = onRLogMessagesProcessed(workerHash, prevMsgEntries);
     });
+  }, [currentWorkers, onRLogMessagesProcessed]);
 
-    msg.byteStateChangeCounts = internalByteStateChangeCounts.reduce((memo, val) => {
-      if (!memo || memo.length === 0) {
-        return val;
+  const onStreamedCanMessagesProcessed = useCallback(
+    ({ data }: MessageEvent<CanWorkerOutput>) => {
+      setMessages((prevMessages) => {
+        const newMessages = enforceStreamingMessageWindow(
+          addAndRehydrateMessages(prevMessages, data.newMessages),
+        );
+        if (selectedMessages.length > 0 && newMessages[selectedMessages[0]] !== undefined) {
+          setSeekIndex(Math.max(0, newMessages[selectedMessages[0]].entries.length - 1));
+        }
+        return newMessages;
+      });
+
+      setSeekTime(data.seekTime);
+      setLastBusTime(data.lastBusTime);
+      setFirstCanTime(data.firstCanTime);
+      if (data.maxByteStateChangeCount < maxByteStateChangeCount) {
+        setMaxByteStateChangeCount(data.maxByteStateChangeCount);
       }
-      return memo.map((count, idx) => val[idx] + count);
-    }, []);
+    },
+    [maxByteStateChangeCount, seekIndex, selectedMessages],
+  );
 
-    return msg;
-  };
+  const enforceStreamingMessageWindow = useCallback((currentMessages: Messages) => {
+    const messageIds = Object.keys(messages);
+    for (let i = 0; i < messageIds.length; i++) {
+      const messageId = messageIds[i];
+      const message = currentMessages[messageId];
+      if (message.entries.length < 2) {
+        continue;
+      }
+
+      const lastEntryTime = message.entries[message.entries.length - 1].relTime;
+      const entrySpan = (lastEntryTime || 0) - (message.entries[0].relTime || 0);
+      if (entrySpan > STREAMING_WINDOW) {
+        const newEntryFloor = firstEntryIndexInsideStreamingWindow(message.entries);
+        message.entries = message.entries.slice(newEntryFloor);
+        currentMessages[messageId] = message;
+      }
+    }
+
+    return currentMessages;
+  }, []);
 
   const addAndRehydrateMessages = useCallback(
     (prevMessages: Messages, newMessages: Messages, options: any = {}) => {
@@ -621,6 +602,50 @@ export default function useCabana(props: Props) {
     },
     [dbc],
   );
+
+  useEffect(() => {
+    if (canStreamer.current) {
+      canStreamer.current.onmessage = onStreamedCanMessagesProcessed;
+    }
+  }, [onStreamedCanMessagesProcessed, enforceStreamingMessageWindow, addAndRehydrateMessages]);
+
+  const parseMessageEntry = (_message: Message, lastMsg: MessageEntry | null = null) => {
+    const msg = _message;
+    dbc.lastUpdated = dbc.lastUpdated || Date.now();
+    msg.lastUpdated = dbc.lastUpdated;
+    msg.frame = dbc.getMessageFrame(msg.address);
+
+    let prevMsgEntry = lastMsg;
+    const internalByteStateChangeCounts: number[][] = [];
+    // entry.messages[id].byteStateChangeCounts = byteStateChangeCounts.map(
+    //   (count, idx) => entry.messages[id].byteStateChangeCounts[idx] + count
+    // );
+    msg.entries = msg.entries.map((entry) => {
+      // TODO: this will never be evaluated now that hexData is requried
+      const internalEntry = entry.hexData
+        ? DBCUtils.reparseMessage(dbc, entry, prevMsgEntry)
+        : DBCUtils.parseMessage(
+            dbc,
+            entry.time,
+            entry.address,
+            entry.data,
+            entry.timeStart,
+            prevMsgEntry,
+          );
+      internalByteStateChangeCounts.push(internalEntry.byteStateChangeCounts);
+      prevMsgEntry = internalEntry.msgEntry;
+      return internalEntry.msgEntry;
+    });
+
+    msg.byteStateChangeCounts = internalByteStateChangeCounts.reduce((memo, val) => {
+      if (!memo || memo.length === 0) {
+        return val;
+      }
+      return memo.map((count, idx) => val[idx] + count);
+    }, []);
+
+    return msg;
+  };
 
   const firstEntryIndexInsideStreamingWindow = (entries: MessageEntry[]) => {
     const lastEntryTime = entries[entries.length - 1].relTime;
