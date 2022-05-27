@@ -2,8 +2,6 @@
 
 This mono-repository contains the web applications and packages for the web UIs of comma.ai
 
-![screenshot](https://github.com/barbinbrad/comma-webapps/blob/main/static/screenshots/light.jpg?raw=true)
-
 ## Contributing
 
 Just pick something and work on it. Take liberties or don't. There are three basic acceptance criterias:
