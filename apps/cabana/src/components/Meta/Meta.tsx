@@ -1,36 +1,31 @@
 import { useState, useCallback, useEffect } from 'react';
-import {
-  Box,
-  Center,
-  Input,
-  Kbd,
-  Spinner,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  // TableContainer,
-} from '@chakra-ui/react';
+import { Box, Center, Input, Spinner, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
 import { ckmeans } from 'simple-statistics';
 import MessageBytes from '../MessageBytes';
 import { Message, Messages, Route } from '../../types';
 
-export default function Meta(props: Props) {
+export default function Meta({
+  borderColor,
+  isLive,
+  messages,
+  seekIndex,
+  seekTime,
+  onMessageSelected,
+}: Props) {
   const [searchFilter, setSearchFilter] = useState('');
   const [orderedMessageKeys, setOrderedMessageKeys] = useState<string[]>([]);
 
   useEffect(() => {
     setOrderedMessageKeys(sortMessages());
-  }, [props.messages]);
+  }, [messages]);
 
   const sortMessages = useCallback(() => {
-    if (Object.keys(props.messages).length === 0) return [];
-    const messagesByEntryCount = Object.entries(props.messages).reduce(
+    if (Object.keys(messages).length === 0) return [];
+    const messagesByEntryCount = Object.entries(messages).reduce(
       (partialMapping: { [key: string]: Message[] }, [msgId, msg]) => {
         const entryCountKey = msg.entries.length.toString(); // js object keys are strings
         if (!partialMapping[entryCountKey]) {
+          // eslint-disable-next-line no-param-reassign
           partialMapping[entryCountKey] = [msg];
         } else {
           partialMapping[entryCountKey].push(msg);
@@ -46,7 +41,7 @@ export default function Meta(props: Props) {
       .map((bin) =>
         bin
           .map((entryCount) => messagesByEntryCount[entryCount.toString()])
-          .reduce((messages, partial) => messages.concat(partial), [])
+          .reduce((msgs, partial) => msgs.concat(partial), [])
           .sort((msg1, msg2) => {
             if (msg1.address < msg2.address) {
               return 1;
@@ -59,11 +54,11 @@ export default function Meta(props: Props) {
       .reverse();
 
     return sortedKeys;
-  }, [props.messages]);
+  }, [messages]);
 
   const orderedMessages = useCallback(() => {
-    return orderedMessageKeys.map((key) => props.messages[key]);
-  }, [orderedMessageKeys, props.messages]);
+    return orderedMessageKeys.map((key) => messages[key]);
+  }, [orderedMessageKeys, messages]);
 
   const canMessageFilter = useCallback(
     (msg: Message) => {
@@ -84,22 +79,22 @@ export default function Meta(props: Props) {
 
   const styles = {
     first: {
-      borderColor: props.borderColor,
+      borderColor,
       fontSize: 12,
       paddingEnd: 0,
     },
     second: {
-      borderColor: props.borderColor,
+      borderColor,
       fontSize: 12,
       paddingStart: 0,
       paddingEnd: 0,
     },
     generic: {
-      borderColor: props.borderColor,
+      borderColor,
       fontSize: 12,
     },
     numeric: {
-      borderColor: props.borderColor,
+      borderColor,
       fontSize: 12,
       isNumeric: true,
     },
@@ -107,7 +102,7 @@ export default function Meta(props: Props) {
 
   const renderMessageBytes = (msg: Message) => {
     return (
-      <Tr key={msg.id} onClick={() => props.onMessageSelected(msg.id)}>
+      <Tr key={msg.id} onClick={() => onMessageSelected(msg.id)}>
         <Td {...styles.first}>{msg.id}</Td>
         <Td {...styles.second}> {msg.frame ? msg.frame.name : ''}</Td>
         <Td {...styles.numeric}>{msg.entries.length}</Td>
@@ -115,25 +110,19 @@ export default function Meta(props: Props) {
           <MessageBytes
             key={msg.id}
             message={msg}
-            seekIndex={props.seekIndex}
-            seekTime={props.seekTime}
-            isLive={props.isLive}
+            seekIndex={seekIndex}
+            seekTime={seekTime}
+            isLive={isLive}
           />
         </Td>
       </Tr>
     );
   };
 
-  if (Object.keys(props.messages).length === 0) {
+  if (Object.keys(messages).length === 0) {
     return (
       <Center h="full">
-        <Spinner
-          thickness="4px"
-          speed="1s"
-          emptyColor={props.borderColor}
-          color="brand.500"
-          size="xl"
-        />
+        <Spinner thickness="4px" speed="1s" emptyColor={borderColor} color="brand.500" size="xl" />
       </Center>
     );
   }
@@ -141,10 +130,16 @@ export default function Meta(props: Props) {
   return (
     <>
       <Box>
-        <Input size="sm" border="none" placeholder="Search" />
+        <Input
+          size="sm"
+          border="none"
+          placeholder="Search"
+          value={searchFilter}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchFilter(e.target.value)}
+        />
       </Box>
       {/* <TableContainer> */}
-      <Table variant="simple" size="sm" borderColor={props.borderColor} borderTopWidth={1}>
+      <Table variant="simple" size="sm" borderColor={borderColor} borderTopWidth={1}>
         <Thead>
           <Tr>
             <Th {...styles.first}>ID</Th>
@@ -173,7 +168,7 @@ export type Props = {
   showingLoadDbc: boolean;
   showingSaveDbc: boolean;
   dbcFilename: string;
-  dbcLastSaved: object | null;
+  dbcLastSaved: any;
   dongleId?: string;
   name?: string;
   route: Route | null;
