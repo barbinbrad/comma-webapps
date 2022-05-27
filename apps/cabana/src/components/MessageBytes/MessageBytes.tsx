@@ -1,4 +1,6 @@
 import { memo, useState, useCallback, useRef, useEffect } from 'react';
+import { Box } from '@chakra-ui/react';
+import { theme } from 'design';
 import usePrevious from '../../hooks/usePrevious';
 import DbcUtils from '../../models/dbc/utils';
 import { Message, MessageEntry } from '../../types';
@@ -13,7 +15,7 @@ function MessageBytes(props: Props) {
 
   useEffect(() => {
     if (canvas.current) {
-      canvas.current!.width = 160;
+      canvas.current!.width = message.frame?.size! * 20 || 160;
       let rowCount;
       if (message.frame && message.frame.size) {
         rowCount = Math.ceil(message.frame.size / 8);
@@ -35,16 +37,14 @@ function MessageBytes(props: Props) {
     }
   }, [seekIndex, seekTime]);
 
-  const canvasInView = () => {
-    if (message.id === '130:25')
-      console.log(message.id, canvas?.current!.getBoundingClientRect().y);
+  const canvasInView = useCallback(() => {
     return (
       !window.visualViewport ||
       !canvas.current ||
       (canvas?.current.getBoundingClientRect().y >= 140 &&
         window.visualViewport.height >= canvas?.current.getBoundingClientRect().y)
     );
-  };
+  }, [canvas]);
 
   const findMostRecentMessage = useCallback(
     (time: number) => {
@@ -100,12 +100,8 @@ function MessageBytes(props: Props) {
       ctx!.fillStyle = message.byteColors[i];
       ctx!.fillRect(x, y, 20, 20);
 
-      // TODO: get font based on OS:
-      // const fontMonoLinux = `"Droid Sans Mono", "monospace", monospace, "Droid Sans Fallback"`;
-      // const fontMonoWin = `Consolas, "Courier New", monospace`;
-      // const fontMonoMac = `Menlo, Monaco, "Courier New", monospace`;
-      ctx!.font = '13px Monaco';
-      ctx!.fillStyle = 'white';
+      ctx!.font = `12px ${theme.fonts.mono}`;
+      ctx!.fillStyle = 'black';
       ctx!.fillText(hexData ? hexData : '-', x + 2, y + 15);
     }
   };
@@ -113,7 +109,16 @@ function MessageBytes(props: Props) {
   return <canvas ref={canvas} height={20}></canvas>;
 }
 
-function shouldNotUpdate(prevProps: Props, nextProps: Props) {
+export default memo(MessageBytes, isEqual);
+
+type Props = {
+  isLive: boolean;
+  message: Message;
+  seekTime: number;
+  seekIndex: number;
+};
+
+function isEqual(prevProps: Props, nextProps: Props) {
   if (nextProps.isLive && nextProps.message.entries.length) {
     const nextLastEntry = nextProps.message.entries[nextProps.message.entries.length - 1];
     const curLastEntry = prevProps.message.entries[prevProps.message.entries.length - 1];
@@ -122,12 +127,3 @@ function shouldNotUpdate(prevProps: Props, nextProps: Props) {
   }
   return prevProps.seekTime === nextProps.seekTime;
 }
-
-export default memo(MessageBytes, shouldNotUpdate);
-
-type Props = {
-  isLive: boolean;
-  message: Message;
-  seekTime: number;
-  seekIndex: number;
-};

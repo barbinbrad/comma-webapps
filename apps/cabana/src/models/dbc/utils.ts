@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import { colors } from 'design';
+import { theme } from 'design';
 import { Buffer } from 'buffer/';
 import {
   ByteStateChangeCounts,
@@ -197,10 +197,8 @@ const utils = {
 
   setMessageByteColors(message: Message, max: number) {
     message.byteColors = message.byteStateChangeCounts
-      .map((count) =>
-        Number.isNaN(count) ? 100 : Math.max(100, Math.ceil((count / max) * 9) * 100),
-      )
-      .map((scale) => colors.brand[scale]);
+      .map((count) => (Number.isNaN(count) ? 50 : Math.max(50, Math.ceil((count / max) * 8) * 100)))
+      .map((scale) => theme.colors.brand[scale]);
 
     return message;
   },

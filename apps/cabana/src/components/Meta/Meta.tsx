@@ -3,6 +3,7 @@ import {
   Box,
   Center,
   Input,
+  Kbd,
   Spinner,
   Table,
   Thead,
@@ -81,28 +82,43 @@ export default function Meta(props: Props) {
     return orderedMessages().filter(canMessageFilter).map(renderMessageBytes);
   };
 
+  const styles = {
+    first: {
+      borderColor: props.borderColor,
+      fontSize: 12,
+      paddingEnd: 0,
+    },
+    second: {
+      borderColor: props.borderColor,
+      fontSize: 12,
+      paddingStart: 0,
+      paddingEnd: 0,
+    },
+    generic: {
+      borderColor: props.borderColor,
+      fontSize: 12,
+    },
+    numeric: {
+      borderColor: props.borderColor,
+      fontSize: 12,
+      isNumeric: true,
+    },
+  };
+
   const renderMessageBytes = (msg: Message) => {
     return (
       <Tr key={msg.id} onClick={() => props.onMessageSelected(msg.id)}>
-        <Td borderColor={props.borderColor} fontSize={12}>
-          {msg.frame ? msg.frame.name : ''}
-        </Td>
-        <Td borderColor={props.borderColor} fontSize={12}>
-          {msg.id}
-        </Td>
-        <Td borderColor={props.borderColor} fontSize={12}>
-          {msg.entries.length}
-        </Td>
-        <Td borderColor={props.borderColor}>
-          <Box>
-            <MessageBytes
-              key={msg.id}
-              message={msg}
-              seekIndex={props.seekIndex}
-              seekTime={props.seekTime}
-              isLive={props.isLive}
-            />
-          </Box>
+        <Td {...styles.first}>{msg.id}</Td>
+        <Td {...styles.second}> {msg.frame ? msg.frame.name : ''}</Td>
+        <Td {...styles.numeric}>{msg.entries.length}</Td>
+        <Td {...styles.generic}>
+          <MessageBytes
+            key={msg.id}
+            message={msg}
+            seekIndex={props.seekIndex}
+            seekTime={props.seekTime}
+            isLive={props.isLive}
+          />
         </Td>
       </Tr>
     );
@@ -125,27 +141,16 @@ export default function Meta(props: Props) {
   return (
     <>
       <Box>
-        <Input
-          size="sm"
-          borderRadius={0}
-          borderTopWidth={0}
-          borderLeftWidth={0}
-          borderRightWidth={0}
-          borderBottomWidth={1}
-          borderColor={props.borderColor}
-          placeholder="Search"
-        />
+        <Input size="sm" border="none" placeholder="Search" />
       </Box>
       {/* <TableContainer> */}
-      <Table variant="simple" size="sm" borderColor={props.borderColor}>
+      <Table variant="simple" size="sm" borderColor={props.borderColor} borderTopWidth={1}>
         <Thead>
           <Tr>
-            <Th borderColor={props.borderColor}>Name</Th>
-            <Th borderColor={props.borderColor}>ID</Th>
-            <Th borderColor={props.borderColor} isNumeric>
-              Count
-            </Th>
-            <Th borderColor={props.borderColor}>Bytes</Th>
+            <Th {...styles.first}>ID</Th>
+            <Th {...styles.second}>Name</Th>
+            <Th {...styles.numeric}>Count</Th>
+            <Th {...styles.generic}>Bytes</Th>
           </Tr>
         </Thead>
         <Tbody>{renderCanMessages()}</Tbody>

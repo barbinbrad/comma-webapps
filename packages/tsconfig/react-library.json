@@ -6,8 +6,11 @@
     "lib": ["ES2015"],
     "module": "ESNext",
     "target": "ES6",
-    "sourceMap": false,
     "jsx": "react-jsx",
-    "composite": false
+    "allowJs": true,
+    "sourceMap": false,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
   }
 }

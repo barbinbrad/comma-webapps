@@ -1,5 +1,5 @@
-import React from "react";
-import Alert from "../Alert";
+import React from 'react';
+import Alert from '../Alert';
 
 export default class CatchError extends React.Component {
   static getDerivedStateFromError(error) {

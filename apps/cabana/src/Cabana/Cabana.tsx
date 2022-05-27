@@ -1,15 +1,4 @@
-import {
-  AspectRatio,
-  Button,
-  Center,
-  Input,
-  Image,
-  Flex,
-  HStack,
-  VStack,
-  Spinner,
-} from '@chakra-ui/react';
-import { FaRegEdit } from 'react-icons/fa';
+import { AspectRatio, Image, Flex, HStack, VStack } from '@chakra-ui/react';
 import useCabana from './useCabana';
 import Meta from '../components/Meta';
 import Navigation from '../components/Navigation';
@@ -59,7 +48,7 @@ function Cabana(props: ReturnType<typeof useCabana>) {
             direction="column"
             h="full"
             w="full"
-            maxWidth={580}
+            maxWidth={530}
             borderRightColor={borderColor}
             borderRightWidth={1}
             overflow="scroll"
