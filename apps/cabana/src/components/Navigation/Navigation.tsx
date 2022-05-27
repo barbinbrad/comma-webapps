@@ -29,7 +29,12 @@ export default function Navigation() {
     <chakra.header bg={bg} w="full" px={{ base: 2, sm: 4 }} py={4} shadow="md">
       <Flex alignItems="center" justifyContent="space-between" mx="auto">
         <HStack display="flex" spacing={3} alignItems="center">
-          <Box display={{ base: 'inline-flex', md: 'none' }}>
+          <chakra.a href="/" title="Cabana" display="flex" alignItems="center">
+            <Logo />
+            <VisuallyHidden>Cabana</VisuallyHidden>
+          </chakra.a>
+
+          <Box display={{ base: 'inline-flex', md: 'none' }} zIndex={999}>
             <IconButton
               display={{ base: 'flex', md: 'none' }}
               aria-label="Open menu"
@@ -70,10 +75,6 @@ export default function Navigation() {
               </Button>
             </VStack>
           </Box>
-          <chakra.a href="/" title="Cabana" display="flex" alignItems="center">
-            <Logo />
-            <VisuallyHidden>Cabana</VisuallyHidden>
-          </chakra.a>
 
           <HStack spacing={2} display={{ base: 'none', md: 'inline-flex' }}>
             <Button variant="ghost" leftIcon={<BsCloudUpload />} size="sm">
@@ -93,12 +94,12 @@ export default function Navigation() {
               href="https://discord.com/channels/469524606043160576/932379632261562368"
               title="Discord"
             >
-              <IconButton aria-label="Discord" onClick={toggleColorMode} icon={<FaDiscord />} />
+              <IconButton aria-label="Discord" icon={<FaDiscord />} />
             </chakra.a>
           </Tooltip>
           <Tooltip label="GitHub">
             <chakra.a href="https://github.com/commaai" title="GitHub">
-              <IconButton aria-label="GitHub" onClick={toggleColorMode} icon={<BsGithub />} />
+              <IconButton aria-label="GitHub" icon={<BsGithub />} />
             </chakra.a>
           </Tooltip>
           <Tooltip label={colorMode !== 'dark' ? 'Dark Mode' : 'Light Mode'}>

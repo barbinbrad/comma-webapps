@@ -9,7 +9,7 @@
     "target": "ES2015",
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "forceConsistentCasingInFileNames": true,
     "stripInternal": true,
     "allowSyntheticDefaultImports": true

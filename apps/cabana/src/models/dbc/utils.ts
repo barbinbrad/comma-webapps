@@ -197,24 +197,22 @@ const utils = {
 
   setMessageByteColors(message: Message, max: number) {
     message.byteColors = message.byteStateChangeCounts
-      .map((count) =>
-        Number.isNaN(count) ? 100 : Math.min(1, Math.floor(9 * (count / max))) * 100,
-      )
+      .map((count) => (Number.isNaN(count) ? 50 : Math.max(50, Math.ceil((count / max) * 8) * 100)))
       .map((scale) => theme.colors.brand[scale]);
 
     return message;
   },
 
-  // maxMessageSize(message, initial = 8) {
-  //   let max = initial;
-  //   for (const entry of message.entries) {
-  //     const data = Buffer.from(entry.hexData, 'hex');
-  //     if (data.length > max) {
-  //       max = data.length;
-  //     }
-  //   }
-  //   return max;
-  // },
+  maxMessageSize(message: Message, initial = 8) {
+    let max = initial;
+    for (const entry of message.entries) {
+      const data = Buffer.from(entry.hexData, 'hex');
+      if (data.length > max) {
+        max = data.length;
+      }
+    }
+    return max;
+  },
 };
 
 const BIG_ENDIAN_START_BITS: number[] = [];

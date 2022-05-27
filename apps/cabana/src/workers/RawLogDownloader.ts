@@ -82,6 +82,8 @@ class CacheEntry implements ICacheEntry {
     this.logUrls = logUrls || [];
     this.batching = false;
     this.ended = false;
+
+    console.log('initializing worker with:', this.options.maxByteStateChangeCount);
   }
 
   insertCanMessage(logTime: number, msg: CerealCanMessage) {
@@ -168,9 +170,10 @@ class CacheEntry implements ICacheEntry {
 
     const { routeInitTime, firstFrameTime } = this.options;
     let { maxByteStateChangeCount } = this.options;
+
     const newMaxByteStateChangeCount = utils.findMaxByteStateChangeCount(messages);
     if (newMaxByteStateChangeCount > maxByteStateChangeCount) {
-      maxByteStateChangeCount = newMaxByteStateChangeCount;
+      this.options.maxByteStateChangeCount = newMaxByteStateChangeCount;
     }
 
     Object.keys(messages).forEach((key) => {
