@@ -1,5 +1,5 @@
 import type { Moment } from 'moment';
-import { Message, Messages, Thumbnail } from '../../types';
+import { Message, Messages, Thumbnail } from '~/types';
 
 export type Props = {
   autoplay: boolean;

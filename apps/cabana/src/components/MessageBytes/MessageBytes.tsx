@@ -12,17 +12,16 @@ function MessageBytes(props: Props) {
   const previous = usePrevious({ seekIndex, seekTime });
 
   useEffect(() => {
-    if (canvas.current) {
-      canvas.current!.width = message.frame?.size! * 20 || 160;
-      const observer = new IntersectionObserver(updateCanvas);
-      observer.observe(canvas.current);
-    }
+    canvas.current!.width = (message.frame?.size || 8) * 20;
+    const observer = new IntersectionObserver(updateCanvas);
+    observer.observe(canvas.current!);
   }, []);
 
   useEffect(() => {
     if (
-      previous?.seekIndex !== seekIndex ||
-      Math.floor(previous.seekTime * 60) !== Math.floor(seekTime * 60)
+      seekTime > 0 &&
+      (previous?.seekIndex !== seekIndex ||
+        Math.floor(previous.seekTime * 60) !== Math.floor(seekTime * 60))
     ) {
       updateCanvas();
     }
@@ -68,8 +67,11 @@ function MessageBytes(props: Props) {
 
   const updateCanvas = () => {
     if (!canvas.current || message.entries.length === 0 || !canvasInView()) {
+      console.log('not updating');
       return;
     }
+
+    console.log('updating');
 
     let mostRecentMsg: MessageEntry | undefined = message.entries[message.entries.length - 1];
     if (!isLive) {

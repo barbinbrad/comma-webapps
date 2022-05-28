@@ -3,7 +3,7 @@ import moment from 'moment';
 import useCabana from './useCabana';
 import { Props } from './types';
 import Explorer from '~/components/Explorer';
-import Meta from '~/components/Meta';
+import MessageList from '~/components/MessageList';
 import Navigation from '~/components/Navigation';
 import debounce from '~/utils/debounce';
 
@@ -67,7 +67,7 @@ function Cabana(props: ReturnType<typeof useCabana>) {
             borderRightWidth={1}
             overflow="scroll"
           >
-            <Meta
+            <MessageList
               borderColor={borderColor}
               messages={messages}
               selectedMessages={selectedMessages}

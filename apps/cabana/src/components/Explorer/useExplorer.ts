@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useEscape } from 'hooks';
 import Entries from '~/models/can/entries';
 import { Props } from './props';
@@ -33,17 +33,59 @@ export default function useExplorer(props: Props) {
     showEditMessageModal,
   } = props;
 
+  const [entriesCount, setEntriesCount] = useState(0);
   const [playing, setPlaying] = useState(autoplay);
   const [playSpeed, setPlaySpeed] = useState(1);
   const [plottedSignals, setPlottedSignals] = useState<PlottedSignals[][]>([]);
   const [segment, setSegment] = useState(startSegments || []);
-  const [segmentIndices, setSegmentIndicies] = useState<number[]>([]);
+  const [segmentIndices, setSegmentIndices] = useState<number[]>([]);
   const [showingAddSignal, setShowingAddSignal] = useState(true);
   const [userSeekIndex, setUserSeekIndex] = useState(0);
   const [userSeekTime, setUserSeekTime] = useState(0);
 
   const escapeHandler = useCallback(() => resetSegment(), []);
   useEscape(escapeHandler);
+
+  useEffect(() => {
+    if (Object.keys(messages).length === 0) {
+      resetSegment();
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    const validatedPlottedSignals = plottedSignals
+      .map((plot) =>
+        plot.filter(({ messageId, signalUid }) => {
+          const messageExists = Boolean(messages[messageId]);
+          let signalExists = true;
+          if (messageExists) {
+            signalExists = Object.values(messages[messageId].frame!.signals).some(
+              (signal) => signal.uid === signalUid,
+            );
+          }
+
+          return messageExists && signalExists;
+        }),
+      )
+      .filter((plot) => plot.length > 0);
+
+    if (plottedSignals.length !== validatedPlottedSignals.length) {
+      setPlottedSignals(validatedPlottedSignals);
+    }
+  }, [plottedSignals, messages]);
+
+  useEffect(() => {
+    if (selectedMessage) {
+      // TODO: do the segement clipping stuff
+      clipSegment(selectedMessage, true);
+    }
+  }, [selectedMessage]);
+
+  useEffect(() => {
+    if (selectedMessage) {
+      checkForEntryCountChange();
+    }
+  }, [messages, selectedMessage]);
 
   const updatePlaySpeed = useCallback((speed: number) => {
     setPlaySpeed(speed);
@@ -139,6 +181,44 @@ export default function useExplorer(props: Props) {
     [segment],
   );
 
+  const checkForEntryCountChange = () => {
+    const newEntries = messages[selectedMessage || ''].entries.length || 0;
+    if (newEntries !== entriesCount) {
+      clipSegment(selectedMessage!);
+      setEntriesCount(newEntries);
+    }
+  };
+
+  const clipSegment = (selectedMessageKey: string, updateSeekTime = false) => {
+    const nextMessage = messages[selectedMessageKey];
+    let newSegment = [...segment];
+    let newSegmentIndices = [...segmentIndices];
+
+    if (newSegment.length === 2) {
+      const segmentStartIdx = nextMessage.entries.findIndex((e) => e.relTime >= newSegment[0]);
+      let segmentEndIdx = nextMessage.entries.findIndex((e) => e.relTime >= newSegment[1]);
+      if (segmentStartIdx !== -1) {
+        if (segmentEndIdx === -1) {
+          // previous segment end is past bounds of this message
+          segmentEndIdx = nextMessage.entries.length - 1;
+        }
+        const segmentStartTime = nextMessage.entries[segmentStartIdx].relTime;
+        const segmentEndTime = nextMessage.entries[segmentEndIdx].relTime;
+
+        newSegment = [segmentStartTime, segmentEndTime];
+        newSegmentIndices = [segmentStartIdx, segmentEndIdx];
+      } else {
+        // segment times are out of boudns for this message
+        newSegment = [];
+        newSegmentIndices = [];
+      }
+    }
+
+    setSegment(newSegment);
+    setSegmentIndices(newSegmentIndices);
+    if (updateSeekTime) setUserSeekIndex(seekIndex);
+  };
+
   const updateSegment = debounce((messageId: string, _segment: number[]) => {
     let newSegment = _segment;
     const { entries } = messages[messageId];
@@ -159,7 +239,7 @@ export default function useExplorer(props: Props) {
     }
 
     setSegment(newSegment);
-    setSegmentIndicies(newSegmentIndices);
+    setSegmentIndices(newSegmentIndices);
     setUserSeekTime(newUserSeekTime);
     setUserSeekIndex(newSegmentIndices[0]);
   }, 250);
@@ -167,7 +247,7 @@ export default function useExplorer(props: Props) {
   const resetSegment = useCallback(() => {
     if (segment.length > 0 || segmentIndices.length > 0) {
       setSegment([]);
-      setSegmentIndicies([]);
+      setSegmentIndices([]);
       setUserSeekIndex(0);
     }
   }, [segment, segmentIndices]);
@@ -188,6 +268,7 @@ export default function useExplorer(props: Props) {
     playSpeed,
     seekIndex,
     segment,
+    segmentIndices,
     selectedMessage,
     startTime,
     thumbnails,
@@ -208,30 +289,4 @@ export default function useExplorer(props: Props) {
     timeWindow,
     updatePlaySpeed,
   };
-}
-
-function clipSegment(_segment: number[], _segmentIndices: number[], nextMessage: Message) {
-  let segment = _segment;
-  let segmentIndices = _segmentIndices;
-  if (segment.length === 2) {
-    const segmentStartIdx = nextMessage.entries.findIndex((e) => e.relTime >= segment[0]);
-    let segmentEndIdx = nextMessage.entries.findIndex((e) => e.relTime >= segment[1]);
-    if (segmentStartIdx !== -1) {
-      if (segmentEndIdx === -1) {
-        // previous segment end is past bounds of this message
-        segmentEndIdx = nextMessage.entries.length - 1;
-      }
-      const segmentStartTime = nextMessage.entries[segmentStartIdx].relTime;
-      const segmentEndTime = nextMessage.entries[segmentEndIdx].relTime;
-
-      segment = [segmentStartTime, segmentEndTime];
-      segmentIndices = [segmentStartIdx, segmentEndIdx];
-    } else {
-      // segment times are out of boudns for this message
-      segment = [];
-      segmentIndices = [];
-    }
-  }
-
-  return { segment, segmentIndices };
 }

@@ -4,7 +4,7 @@ import { ckmeans } from 'simple-statistics';
 import MessageBytes from '~/components/MessageBytes';
 import { Message, Messages, Route } from '~/types';
 
-export default function Meta({
+export default function MessageList({
   borderColor,
   isLive,
   messages,

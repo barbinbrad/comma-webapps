@@ -1,5 +1,6 @@
 import { Props } from './props';
 import useExplorer from './useExplorer';
+import RouteVideoSync from '~/components/RouteVideoSync';
 
 export default function Container(props: Props) {
   const state = useExplorer(props);
@@ -8,17 +9,12 @@ export default function Container(props: Props) {
 
 function Explorer(props: ReturnType<typeof useExplorer>) {
   const {
-    firstCanTime,
     maxqcamera,
-    messages,
     playing,
     playSpeed,
     segment,
-    selectedMessage,
-    seekIndex,
+    segmentIndices,
     startTime,
-    thumbnails,
-    userSeekIndex,
     userSeekTime,
     url,
     videoOffset,
@@ -30,26 +26,21 @@ function Explorer(props: ReturnType<typeof useExplorer>) {
   } = props;
 
   return (
-    // <RouteVideoSync
-    //   message={messages[selectedMessage || '']}
-    //   segment={segment}
-    //   maxqcamera={maxqcamera}
-    //   startTime={startTime}
-    //   seekIndex={seekIndex}
-    //   userSeekIndex={userSeekIndex}
-    //   playing={playing}
-    //   url={url}
-    //   firstCanTime={firstCanTime}
-    //   videoOffset={videoOffset}
-    //   onVideoClick={onVideoClick}
-    //   onPlaySeek={onPlaySeek}
-    //   onUserSeek={onUserSeek}
-    //   onPlay={onPlay}
-    //   onPause={onPause}
-    //   userSeekTime={userSeekTime}
-    //   playSpeed={playSpeed}
-    //   thumbnails={thumbnails}
-    // />
-    <h1>Explorer</h1>
+    <RouteVideoSync
+      maxqcamera={maxqcamera}
+      playing={playing}
+      playSpeed={playSpeed}
+      segment={segment}
+      segmentIndices={segmentIndices}
+      startTime={startTime}
+      userSeekTime={userSeekTime}
+      url={url}
+      videoOffset={videoOffset}
+      onPause={onPause}
+      onPlay={onPlay}
+      onPlaySeek={onPlaySeek}
+      onUserSeek={onUserSeek}
+      onVideoClick={onVideoClick}
+    />
   );
 }
