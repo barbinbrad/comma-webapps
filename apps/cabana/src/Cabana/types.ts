@@ -1,4 +1,4 @@
-import DBC from '../models/dbc';
+import DBC from '~/models/can';
 
 export type Props = {
   autoplay: boolean;

@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-import { IDbc } from '../../types';
+import { IDbc } from '~/types';
 import Signal from './signal';
 import Frame from './frame';
 import BoardUnit from './boardunit';

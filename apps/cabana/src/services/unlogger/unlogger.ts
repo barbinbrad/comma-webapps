@@ -1,5 +1,5 @@
 import SocketIO, { Socket } from 'socket.io-client';
-import { UNLOGGER_HOST } from '../../config';
+import { UNLOGGER_HOST } from '~/config';
 
 export default class UnloggerClient {
   socket: Socket;

@@ -1,5 +1,5 @@
 import Signal from './signal';
-import { IFrame, ISignal } from '../../types';
+import { IFrame, ISignal } from '~/types';
 
 export default class Frame implements IFrame {
   name: string;

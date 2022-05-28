@@ -1,8 +1,8 @@
 import { config } from 'auth';
-import { demoProps } from '../data/demo';
-import storage from '../services/localStorage';
+import { demoProps } from '~/data/demo';
+import storage from '~/services/localStorage';
+import { modifyQueryParameters } from '~/utils/url';
 import { Props } from './types';
-import { modifyQueryParameters } from '../utils/url';
 
 const { GITHUB_AUTH_TOKEN_KEY } = config;
 

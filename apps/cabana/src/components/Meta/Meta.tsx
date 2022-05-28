@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Box, Center, Input, Spinner, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
 import { ckmeans } from 'simple-statistics';
-import MessageBytes from '../MessageBytes';
-import { Message, Messages, Route } from '../../types';
+import MessageBytes from '~/components/MessageBytes';
+import { Message, Messages, Route } from '~/types';
 
 export default function Meta({
   borderColor,
@@ -14,21 +14,26 @@ export default function Meta({
 }: Props) {
   const [searchFilter, setSearchFilter] = useState('');
   const [orderedMessageKeys, setOrderedMessageKeys] = useState<string[]>([]);
+  const [orderedMessages, setOrderedMessages] = useState<Message[]>([]);
 
   useEffect(() => {
     setOrderedMessageKeys(sortMessages());
   }, [messages]);
 
-  const sortMessages = useCallback(() => {
+  useEffect(() => {
+    setOrderedMessages(orderedMessageKeys.map((key) => messages[key]).filter(canMessageFilter));
+  }, [orderedMessageKeys, searchFilter]);
+
+  const sortMessages = () => {
     if (Object.keys(messages).length === 0) return [];
     const messagesByEntryCount = Object.entries(messages).reduce(
-      (partialMapping: { [key: string]: Message[] }, [msgId, msg]) => {
-        const entryCountKey = msg.entries.length.toString(); // js object keys are strings
+      (partialMapping: { [key: string]: Message[] }, entry) => {
+        const entryCountKey = entry[1].entries.length.toString(); // js object keys are strings
         if (!partialMapping[entryCountKey]) {
           // eslint-disable-next-line no-param-reassign
-          partialMapping[entryCountKey] = [msg];
+          partialMapping[entryCountKey] = [entry[1]];
         } else {
-          partialMapping[entryCountKey].push(msg);
+          partialMapping[entryCountKey].push(entry[1]);
         }
         return partialMapping;
       },
@@ -54,11 +59,7 @@ export default function Meta({
       .reverse();
 
     return sortedKeys;
-  }, [messages]);
-
-  const orderedMessages = useCallback(() => {
-    return orderedMessageKeys.map((key) => messages[key]);
-  }, [orderedMessageKeys, messages]);
+  };
 
   const canMessageFilter = useCallback(
     (msg: Message) => {
@@ -72,10 +73,6 @@ export default function Meta({
     },
     [searchFilter],
   );
-
-  const renderCanMessages = () => {
-    return orderedMessages().filter(canMessageFilter).map(renderMessageBytes);
-  };
 
   const styles = {
     first: {
@@ -100,9 +97,14 @@ export default function Meta({
     },
   };
 
-  const renderMessageBytes = (msg: Message) => {
+  const renderMessageTableRow = (msg: Message) => {
     return (
-      <Tr key={msg.id} onClick={() => onMessageSelected(msg.id)}>
+      <Tr
+        key={msg.id}
+        onClick={() => onMessageSelected(msg.id)}
+        cursor="pointer"
+        _hover={{ background: borderColor }}
+      >
         <Td {...styles.first}>{msg.id}</Td>
         <Td {...styles.second}> {msg.frame ? msg.frame.name : ''}</Td>
         <Td {...styles.numeric}>{msg.entries.length}</Td>
@@ -148,7 +150,7 @@ export default function Meta({
             <Th {...styles.generic}>Bytes</Th>
           </Tr>
         </Thead>
-        <Tbody>{renderCanMessages()}</Tbody>
+        <Tbody>{orderedMessages.map(renderMessageTableRow)}</Tbody>
       </Table>
       {/* </TableContainer> */}
     </>
@@ -157,7 +159,6 @@ export default function Meta({
 
 export type Props = {
   borderColor: string;
-  url?: string | null;
   messages: Messages;
   selectedMessages: string[];
   setSelectedMessages: (messages: string[]) => void;
@@ -169,8 +170,6 @@ export type Props = {
   showingSaveDbc: boolean;
   dbcFilename: string;
   dbcLastSaved: any;
-  dongleId?: string;
-  name?: string;
   route: Route | null;
   seekTime: number;
   seekIndex: number;

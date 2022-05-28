@@ -1,10 +1,11 @@
-import { AspectRatio, Image, Flex, HStack, VStack } from '@chakra-ui/react';
+import { Flex, HStack, VStack } from '@chakra-ui/react';
+import moment from 'moment';
 import useCabana from './useCabana';
-import Meta from '../components/Meta';
-import Navigation from '../components/Navigation';
-import snapshot from '../data/snapshot.jpg';
 import { Props } from './types';
-import debounce from '../utils/debounce';
+import Explorer from '~/components/Explorer';
+import Meta from '~/components/Meta';
+import Navigation from '~/components/Navigation';
+import debounce from '~/utils/debounce';
 
 export default function Container(props: Props) {
   const state = useCabana(props);
@@ -13,25 +14,38 @@ export default function Container(props: Props) {
 
 function Cabana(props: ReturnType<typeof useCabana>) {
   const {
+    autoplay,
     borderColor,
+    canFrameOffset,
+    currentPart,
     currentParts,
     dbcFilename,
     dbcLastSaved,
-    dongleId,
+    firstCanTime,
+    firstFrameTime,
     isDemo,
     isLive,
     messages,
-    name,
+    partsLoaded,
     route,
+    routeInitTime,
     seekIndex,
     seekTime,
+    segments,
+    selectedMessage,
     selectedMessages,
     shareUrl,
     showingLoadDbc,
     showingSaveDbc,
+    startTime,
+    thumbnails,
     downloadLogAsCSV,
+    onConfirmedSignalChange,
     onMessageSelected,
     onMessageUnselected,
+    onPartChange,
+    onSeek,
+    onUserSeek,
     setSelectedMessages,
     showEditMessageModal,
   } = props;
@@ -55,7 +69,6 @@ function Cabana(props: ReturnType<typeof useCabana>) {
           >
             <Meta
               borderColor={borderColor}
-              url={route ? route.url : null}
               messages={messages}
               selectedMessages={selectedMessages}
               setSelectedMessages={setSelectedMessages}
@@ -67,8 +80,6 @@ function Cabana(props: ReturnType<typeof useCabana>) {
               showingSaveDbc={showingSaveDbc}
               dbcFilename={dbcFilename}
               dbcLastSaved={dbcLastSaved}
-              dongleId={dongleId}
-              name={name}
               route={route}
               seekTime={seekTime}
               seekIndex={seekIndex}
@@ -100,11 +111,40 @@ function Cabana(props: ReturnType<typeof useCabana>) {
               STEER_ANGLE_SENSOR
             </Button>
           </Flex> */}
-          <Flex as="aside" h="full" w="full" overflow="scroll">
-            <AspectRatio w="full" maxHeight="full" ratio={4 / 3}>
+          {route || isLive ? (
+            <Flex as="aside" h="full" w="full" overflow="scroll">
+              <Explorer
+                autoplay={autoplay}
+                canFrameOffset={canFrameOffset}
+                currentParts={currentParts}
+                firstCanTime={firstCanTime}
+                isLive={isLive}
+                maxqcamera={route ? route.maxqcamera : 0}
+                messages={messages}
+                partsCount={route ? route.proclog : 0}
+                partsLoaded={partsLoaded}
+                routeStartTime={route ? route.start_time : moment()}
+                seekTime={seekTime}
+                seekIndex={seekIndex}
+                selectedMessage={selectedMessage}
+                selectedPart={currentPart}
+                startTime={startTime}
+                startSegments={segments}
+                thumbnails={thumbnails}
+                url={route ? route.url : null}
+                videoOffset={firstFrameTime && routeInitTime ? firstFrameTime - routeInitTime : 0}
+                onConfirmedSignalChange={onConfirmedSignalChange}
+                onSeek={onSeek}
+                onUserSeek={onUserSeek}
+                onPartChange={onPartChange}
+                showEditMessageModal={showEditMessageModal}
+              />
+            </Flex>
+          ) : null}
+
+          {/* <AspectRatio w="full" maxHeight="full" ratio={4 / 3}>
               <Image src={snapshot} />
-            </AspectRatio>
-          </Flex>
+            </AspectRatio> */}
         </HStack>
       </Flex>
     </VStack>

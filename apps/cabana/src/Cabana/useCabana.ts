@@ -4,19 +4,21 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useColorMode } from '@chakra-ui/react';
 import { raw as RawDataApi, drives as DrivesApi } from 'api';
 import CommaAuth, { storage as CommaAuthStorage, config as AuthConfig } from 'auth';
+import { useInterval } from 'hooks';
 import moment from 'moment';
 import PandaAPI from 'panda';
 import Panda from 'panda/dist/module/lib/panda'; // TODO: type should come from main package
-import { PART_SEGMENT_LENGTH, STREAMING_WINDOW, GITHUB_AUTH_TOKEN_KEY } from '../config';
-import { demoLogUrls, demoRoute } from '../data/demo';
-import useInterval from '../hooks/useInterval';
-import DBC from '../models/dbc';
-import DBCUtils from '../models/dbc/utils';
-import Storage from '../services/localStorage/localStorage';
-import OpenDbcClient from '../services/opendbc';
-import UnloggerClient from '../services/unlogger/unlogger';
+import { timeout } from 'thyming';
+import { PART_SEGMENT_LENGTH, STREAMING_WINDOW, GITHUB_AUTH_TOKEN_KEY } from '~/config';
+import { demoLogUrls, demoRoute } from '~/data/demo';
+import DBC from '~/models/can';
+import DBCUtils from '~/models/can/utils';
+import Storage from '~/services/localStorage/localStorage';
+import OpenDbcClient from '~/services/opendbc';
+import UnloggerClient from '~/services/unlogger/unlogger';
 import { Props } from './types';
 import {
+  IFrame,
   ByteStateChangeCounts,
   CanWorkerOutput,
   DataCache,
@@ -33,18 +35,31 @@ import {
   SharedSignature,
   SpawnWorkerOptions,
   WorkerHashMap,
-} from '../types';
-import { hash } from '../utils/string';
-import { modifyQueryParameters } from '../utils/url';
+} from '~/types';
 
-import CanStreamer from '../workers/CanStreamerWorker?worker';
-import MessageParser from '../workers/MessageParserWorker?worker';
-import RawLogDownloader from '../workers/RawLogDownloader?worker';
+import debounce from '~/utils/debounce';
+import { hash } from '~/utils/string';
+import { modifyQueryParameters } from '~/utils/url';
+
+import CanStreamer from '~/workers/CanStreamerWorker?worker';
+import MessageParser from '~/workers/MessageParserWorker?worker';
+import RawLogDownloader from '~/workers/RawLogDownloader?worker';
 
 const dataCache: { [key: number]: DataCache } = {};
+let loadMessagesFromCacheTimer: (() => void) | null = null;
 
 export default function useCabana(props: Props) {
-  const { dongleId, githubAuthToken, isDemo, isLegacyShare, name, unlogger } = props;
+  const {
+    autoplay,
+    dongleId,
+    githubAuthToken,
+    isDemo,
+    isLegacyShare,
+    name,
+    unlogger,
+    segments,
+    startTime,
+  } = props;
   const { colorMode } = useColorMode();
   const borderColor = colorMode !== 'dark' ? 'gray.200' : 'whiteAlpha.300';
   const isMounted = useRef(false);
@@ -75,7 +90,7 @@ export default function useCabana(props: Props) {
   const [dbcText, setDbcText] = useState(props.dbc ? props.dbc.text() : new DBC().text());
   const [dbcFilename, setDbcFilename] = useState(props.dbcFilename ? props.dbcFilename : 'New_DBC');
   const [dbcLastSaved, setDbcLastSaved] = useState(null);
-  const [seekTime, setSeekTime] = useState(props.startTime || 0);
+  const [seekTime, setSeekTime] = useState(startTime || 0);
   const [seekIndex, setSeekIndex] = useState(0);
   const [maxByteStateChangeCount, setMaxByteStateChangeCount] = useState(0);
   const [partsLoaded, setPartsLoaded] = useState(0);
@@ -117,17 +132,16 @@ export default function useCabana(props: Props) {
     } else if (isDemo) {
       setLogUrls(demoLogUrls);
       setCurrentParts([0, 2]);
-      setCurrentPart(0);
       setRoute(demoRoute);
     } else if (isLegacyShare) {
-      const startTime = moment(name, 'YYYY-MM-DD--H-m-s');
+      const start = moment(name, 'YYYY-MM-DD--H-m-s');
 
       setCurrentParts([0, Math.min(max || 0, PART_SEGMENT_LENGTH - 1)]);
       setRoute({
         fullname: `${dongleId}|${name}`,
         proclog: max,
         url,
-        start_time: startTime,
+        start_time: start,
       });
     } else if (dongleId && name) {
       const routeName = `${dongleId}|${name}`;
@@ -204,7 +218,20 @@ export default function useCabana(props: Props) {
     } else {
       isMounted.current = true;
     }
-  }, [currentParts, partsLoaded]);
+  }, [currentParts]);
+
+  useEffect(() => {
+    if (partsLoaded > 0) {
+      spawnWorker();
+    }
+  }, [partsLoaded]);
+
+  useEffect(() => {
+    if (currentPart > 0) {
+      spawnWorker();
+      loadMessagesFromCache();
+    }
+  }, [currentPart]);
 
   useEffect(() => {
     if (githubAuthToken) {
@@ -459,6 +486,114 @@ export default function useCabana(props: Props) {
     },
     [currentParts, dbc, setMessages],
   );
+
+  const loadMessagesFromCache = useCallback(async () => {
+    // create a new messages object for state
+    if (loadMessagesFromCacheRunning) {
+      if (!loadMessagesFromCacheTimer) {
+        loadMessagesFromCacheTimer = timeout(() => loadMessagesFromCache(), 10);
+      }
+      return;
+    }
+    setLoadMessagesFromCacheRunning(true);
+    if (loadMessagesFromCacheTimer) {
+      loadMessagesFromCacheTimer();
+      loadMessagesFromCacheTimer = null;
+    }
+
+    const { lastUpdated } = dbc;
+    const [minPart, maxPart] = currentParts;
+    const cachedMessages: Messages = {};
+    let cachedThumbnails: Thumbnail[] = [];
+    let isCanceled = false;
+
+    let start = performance.now();
+
+    const promises: Promise<DataCache | null | undefined>[] = [];
+
+    for (let i = minPart, l = maxPart; i <= l; ++i) {
+      const promise = getParseSegment(i);
+      if (promise) {
+        promises.push(promise);
+      }
+    }
+
+    await promises.reduce(async (prev, p) => {
+      await prev;
+      if (isCanceled) {
+        return;
+      }
+      const cacheEntry = await p;
+      if (dbc.lastUpdated !== lastUpdated) {
+        if (!isCanceled) {
+          isCanceled = true;
+          setLoadMessagesFromCacheRunning(false);
+          console.log('Canceling!');
+          loadMessagesFromCache();
+        }
+        return;
+      }
+      if (cacheEntry) {
+        const newMessages = cacheEntry.messages;
+        cachedThumbnails = thumbnails.concat(cacheEntry.thumbnails);
+        Object.keys(newMessages).forEach((key) => {
+          if (!cachedMessages[key]) {
+            cachedMessages[key] = { ...newMessages[key] };
+          } else {
+            const newMessageEntries = newMessages[key].entries;
+            const messageEntries = cachedMessages[key].entries;
+            if (
+              newMessageEntries.length &&
+              newMessageEntries[0].relTime < messageEntries[messageEntries.length - 1].relTime
+            ) {
+              console.error(
+                'Found out of order messages',
+                newMessageEntries[0],
+                messageEntries[messageEntries.length - 1],
+              );
+            }
+            cachedMessages[key].entries = cachedMessages[key].entries.concat(
+              newMessages[key].entries,
+            );
+          }
+        });
+      }
+      console.log('Done with', performance.now() - start);
+      start = performance.now();
+    }, Promise.resolve());
+
+    if (isCanceled) {
+      return;
+    }
+
+    Object.keys(messages).forEach((key) => {
+      if (!cachedMessages[key]) {
+        cachedMessages[key] = messages[key];
+        cachedMessages[key].entries = [];
+      }
+    });
+
+    Object.keys(cachedMessages).forEach((key) => {
+      cachedMessages[key].frame = dbc.getMessageFrame(cachedMessages[key].address);
+    });
+
+    const newMaxByteStateChangeCount = DBCUtils.findMaxByteStateChangeCount(cachedMessages);
+    setMaxByteStateChangeCount(newMaxByteStateChangeCount);
+
+    Object.keys(cachedMessages).forEach((key) => {
+      // console.log(key);
+      cachedMessages[key] = DBCUtils.setMessageByteColors(
+        cachedMessages[key],
+        newMaxByteStateChangeCount,
+      );
+    });
+
+    console.log('Done with old messages', performance.now() - start);
+
+    setMessages(cachedMessages);
+    setThumbnails(cachedThumbnails);
+    setLoadMessagesFromCacheRunning(false);
+  }, [currentParts, dbc, loadMessagesFromCacheRunning, messages]);
 
   const onRLogMessagesProcessed = useCallback(
     (workerHash: string, prevMsgEntries: { [key: string]: MessageEntry } = {}) =>
@@ -730,14 +865,14 @@ export default function useCabana(props: Props) {
     [getParseSegmentInternal],
   );
 
-  // const decacheMessageId = (messageId: string) => {
-  //   Object.keys(dataCache).forEach((part) => {
-  //     const partNumber = parseInt(part, 10);
-  //     if (dataCache[partNumber].messages[messageId]) {
-  //       dataCache[partNumber].messages[messageId].lastUpdated = 0;
-  //     }
-  //   });
-  // };
+  const decacheMessageId = (messageId: string) => {
+    Object.keys(dataCache).forEach((part) => {
+      const partNumber = parseInt(part, 10);
+      if (dataCache[partNumber].messages[messageId]) {
+        dataCache[partNumber].messages[messageId].lastUpdated = 0;
+      }
+    });
+  };
 
   const reparseMessages = useCallback(
     async (reparsedMessages: Messages): Promise<Messages> => {
@@ -816,28 +951,142 @@ export default function useCabana(props: Props) {
     console.log('Downloading log as CSV');
   };
 
+  const updateMessageFrame = useCallback(
+    (messageId: string, frame?: IFrame) => {
+      if (frame) {
+        setMessages((prevMessages) => {
+          prevMessages[messageId].frame = frame;
+          return prevMessages;
+        });
+      }
+    },
+    [setMessages],
+  );
+
+  const persistDbc = (fileName: string, dbcInstance: DBC) => {
+    if (route) {
+      Storage.persistDbc(route.fullname, fileName, dbcInstance);
+    } else {
+      Storage.persistDbc('live', fileName, dbcInstance);
+    }
+
+    loadMessagesFromCache();
+  };
+
+  const onConfirmedSignalChange = useCallback(
+    (message: Message, signals: { [key: string]: any }) => {
+      const frameSize = DBCUtils.maxMessageSize(message);
+      dbc.setSignals(message.address, { ...signals }, frameSize);
+
+      persistDbc(dbcFilename, dbc);
+      updateMessageFrame(message.id, dbc.getMessageFrame(message.address));
+
+      setDbc(dbc);
+      setDbcText(dbc.text());
+
+      decacheMessageId(message.id);
+      loadMessagesFromCache();
+    },
+    [dbc, dbcFilename],
+  );
+
+  const partChangeDebounced = debounce(() => {
+    loadMessagesFromCache();
+    spawnWorker();
+  }, 500);
+
+  const onPartChange = useCallback(
+    (part: number) => {
+      if (canFrameOffset === -1 || part === currentPart) {
+        return;
+      }
+
+      // determine new parts to load, whether to prepend or append
+      let maxPart = Math.min(route?.proclog!, part + 1);
+      const minPart = Math.max(0, maxPart - PART_SEGMENT_LENGTH + 1);
+      if (minPart === 0) {
+        maxPart = Math.min(route?.proclog!, 2);
+      }
+
+      if (currentPart !== part || currentParts[0] !== minPart || currentParts[1] !== maxPart) {
+        setCurrentPart(part);
+        setCurrentParts([minPart, maxPart]);
+        partChangeDebounced();
+      }
+    },
+    [currentParts, currentPart, canFrameOffset, route],
+  );
+
+  const onSeek = useCallback(
+    (index: number, time: number) => {
+      setSeekIndex(index);
+      setSeekTime(time);
+
+      const part = ~~(time / 60);
+      if (part !== currentPart) {
+        onPartChange(part);
+      }
+    },
+    [currentPart],
+  );
+
+  const onUserSeek = useCallback(
+    (time: number) => {
+      if (unlogger) {
+        unloggerClient.current!.seek(dongleId!, name!, seekTime);
+      }
+      let index = 0;
+      if (selectedMessage) {
+        const msg = messages[selectedMessage];
+        if (msg) {
+          index = msg.entries.findIndex((e) => e.relTime >= seekTime);
+          if (index === -1) {
+            index = 0;
+          }
+        }
+      }
+
+      onSeek(index, seekTime);
+    },
+    [dongleId, name, seekTime],
+  );
+
   return {
+    autoplay,
     borderColor,
+    canFrameOffset,
+    currentPart,
     currentParts,
     dbcFilename,
     dbcLastSaved,
     dongleId,
+    firstCanTime,
+    firstFrameTime,
     isDemo,
     isLive,
     messages,
-    name,
+    partsLoaded,
+    route,
+    routeInitTime,
     seekIndex,
     seekTime,
+    segments,
+    selectedMessage,
     selectedMessages,
     shareUrl,
     showingLoadDbc,
     showingSaveDbc,
-    route,
+    startTime,
+    thumbnails,
     downloadLogAsCSV,
     handlePandaConnect,
     hideEditMessageModal,
+    onConfirmedSignalChange,
     onMessageSelected,
     onMessageUnselected,
+    onPartChange,
+    onSeek,
+    onUserSeek,
     setSelectedMessages,
     showEditMessageModal,
   };

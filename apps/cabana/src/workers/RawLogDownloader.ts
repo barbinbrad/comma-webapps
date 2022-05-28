@@ -3,9 +3,9 @@
 // TODO: convert log_reader & capnp_ts to internal packages
 import LogStream from '@commaai/log_reader';
 
-import RlogService from '../services/rlog/rlog';
-import utils from '../models/dbc/utils';
-import DBC from '../models/dbc';
+import RlogService from '~/services/rlog/rlog';
+import utils from '~/models/can/utils';
+import DBC from '~/models/can';
 import {
   ICacheEntry,
   IDbc,
@@ -15,7 +15,7 @@ import {
   MessageEntry,
   RawLogWorkerInput,
   Thumbnail,
-} from '../types';
+} from '~/types';
 
 /*  
     RawLogDownloader API
@@ -82,8 +82,6 @@ class CacheEntry implements ICacheEntry {
     this.logUrls = logUrls || [];
     this.batching = false;
     this.ended = false;
-
-    console.log('initializing worker with:', this.options.maxByteStateChangeCount);
   }
 
   insertCanMessage(logTime: number, msg: CerealCanMessage) {
@@ -168,8 +166,7 @@ class CacheEntry implements ICacheEntry {
     this.messages = {};
     this.thumbnails = [];
 
-    const { routeInitTime, firstFrameTime } = this.options;
-    let { maxByteStateChangeCount } = this.options;
+    const { maxByteStateChangeCount, routeInitTime, firstFrameTime } = this.options;
 
     const newMaxByteStateChangeCount = utils.findMaxByteStateChangeCount(messages);
     if (newMaxByteStateChangeCount > maxByteStateChangeCount) {

@@ -1,9 +1,7 @@
 import { memo, useState, useCallback, useRef, useEffect } from 'react';
-import { Box } from '@chakra-ui/react';
 import { theme } from 'design';
-import usePrevious from '../../hooks/usePrevious';
-import DbcUtils from '../../models/dbc/utils';
-import { Message, MessageEntry } from '../../types';
+import { usePrevious } from 'hooks';
+import { Message, MessageEntry } from '~/types';
 
 function MessageBytes(props: Props) {
   const [lastMessageIndex, setLastMessageIndex] = useState(0);
@@ -16,13 +14,6 @@ function MessageBytes(props: Props) {
   useEffect(() => {
     if (canvas.current) {
       canvas.current!.width = message.frame?.size! * 20 || 160;
-      let rowCount;
-      if (message.frame && message.frame.size) {
-        rowCount = Math.ceil(message.frame.size / 8);
-      } else {
-        rowCount = Math.ceil(DbcUtils.maxMessageSize(message) / 8);
-      }
-
       const observer = new IntersectionObserver(updateCanvas);
       observer.observe(canvas.current);
     }
@@ -102,11 +93,11 @@ function MessageBytes(props: Props) {
 
       ctx!.font = `12px ${theme.fonts.mono}`;
       ctx!.fillStyle = 'black';
-      ctx!.fillText(hexData ? hexData : '-', x + 2, y + 15);
+      ctx!.fillText(hexData || '-', x + 2, y + 15);
     }
   };
 
-  return <canvas ref={canvas} height={20}></canvas>;
+  return <canvas ref={canvas} height={20} />;
 }
 
 export default memo(MessageBytes, isEqual);

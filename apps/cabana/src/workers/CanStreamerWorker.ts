@@ -1,8 +1,8 @@
 /* eslint-env worker */
 /* eslint-disable no-restricted-globals, no-param-reassign */
 
-import DBC from '../models/dbc';
-import utils from '../models/dbc/utils';
+import DBC from '~/models/can';
+import utils from '~/models/can/utils';
 import {
   CanWorkerInput,
   MessageEntry,
@@ -10,7 +10,7 @@ import {
   TimedCanMessages,
   Messages,
   CanWorkerOutput,
-} from '../types';
+} from '~/types';
 
 /*  
     CanStreamerWorker API
