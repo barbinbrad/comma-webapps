@@ -5,6 +5,6 @@ export default function videoApi(routeSigUrl: string) {
 
   return {
     getQcameraStreamIndexUrl: () => routeSigUrl + "/qcamera.m3u8",
-    getQcameraStreamIndex: () => storageRequest.stream("qcamera.m3u8"),
+    getQcameraStreamIndex: () => storageRequest.stream("/qcamera.m3u8"),
   };
 }

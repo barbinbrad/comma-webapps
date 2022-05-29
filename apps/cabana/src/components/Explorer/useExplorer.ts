@@ -2,12 +2,13 @@ import { useState, useCallback, useEffect } from 'react';
 import { useEscape } from 'hooks';
 import Entries from '~/models/can/entries';
 import { Props } from './props';
-import { Message, PlottedSignals } from '~/types';
+import { PlottedSignals } from '~/types';
 import debounce from '~/utils/debounce';
 
 export default function useExplorer(props: Props) {
   const {
     autoplay,
+    borderColor,
     canFrameOffset,
     currentParts,
     firstCanTime,
@@ -261,6 +262,7 @@ export default function useExplorer(props: Props) {
   }, []);
 
   return {
+    borderColor,
     firstCanTime,
     maxqcamera,
     messages,

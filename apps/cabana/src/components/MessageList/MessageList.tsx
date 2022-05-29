@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Box, Center, Input, Spinner, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
+import { Box, Input, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
 import { ckmeans } from 'simple-statistics';
+import Loading from '~/components/Loading';
 import MessageBytes from '~/components/MessageBytes';
 import { Message, Messages, Route } from '~/types';
 
@@ -122,11 +123,7 @@ export default function MessageList({
   };
 
   if (Object.keys(messages).length === 0) {
-    return (
-      <Center h="full">
-        <Spinner thickness="4px" speed="1s" emptyColor={borderColor} color="brand.500" size="xl" />
-      </Center>
-    );
+    return <Loading emptyColor={borderColor} />;
   }
 
   return (

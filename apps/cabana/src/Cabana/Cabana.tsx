@@ -112,9 +112,10 @@ function Cabana(props: ReturnType<typeof useCabana>) {
             </Button>
           </Flex> */}
           {route || isLive ? (
-            <Flex as="aside" h="full" w="full" overflow="scroll">
+            <Flex as="main" h="full" w="full" overflow="scroll">
               <Explorer
                 autoplay={autoplay}
+                borderColor={borderColor}
                 canFrameOffset={canFrameOffset}
                 currentParts={currentParts}
                 firstCanTime={firstCanTime}

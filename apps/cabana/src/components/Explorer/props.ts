@@ -3,6 +3,7 @@ import { Message, Messages, Thumbnail } from '~/types';
 
 export type Props = {
   autoplay: boolean;
+  borderColor: string;
   canFrameOffset: number;
   currentParts: [number, number];
   firstCanTime: number | null;

@@ -61,23 +61,23 @@ function MessageBytes(props: Props) {
 
         return message.entries[mostRecentMessageIndex];
       }
+
+      return undefined;
     },
     [lastSeekTime, lastMessageIndex, message, seekTime],
   );
 
   const updateCanvas = () => {
     if (!canvas.current || message.entries.length === 0 || !canvasInView()) {
-      console.log('not updating');
       return;
     }
-
-    console.log('updating');
 
     let mostRecentMsg: MessageEntry | undefined = message.entries[message.entries.length - 1];
     if (!isLive) {
       mostRecentMsg = findMostRecentMessage(seekTime);
 
       if (!mostRecentMsg) {
+        // eslint-disable-next-line prefer-destructuring
         mostRecentMsg = message.entries[0];
       }
     }
