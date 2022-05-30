@@ -1,108 +1,186 @@
-import { memo, useState, useCallback, useRef, useEffect } from 'react';
+/* eslint-disable prefer-destructuring */
+/* eslint-disable react/destructuring-assignment */
+import { Component } from 'react';
 import { theme } from 'design';
-import { usePrevious } from 'hooks';
+import DbcUtils from '~/models/can/utils';
 import { Message, MessageEntry } from '~/types';
 
-function MessageBytes(props: Props) {
-  const [lastMessageIndex, setLastMessageIndex] = useState(0);
-  const [lastSeekTime, setLastSeekTime] = useState(0);
-  const canvas = useRef<HTMLCanvasElement | null>(null);
+export default class MessageBytes extends Component<Props, State> {
+  canvas?: HTMLCanvasElement;
 
-  const { message, isLive, seekTime, seekIndex } = props;
-  const previous = usePrevious({ seekIndex, seekTime });
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      isVisible: true,
+      lastMessageIndex: 0,
+      lastSeekTime: 0,
+      maxMessageBytes: 0,
+    };
 
-  useEffect(() => {
-    canvas.current!.width = (message.frame?.size || 8) * 20;
-    const observer = new IntersectionObserver(updateCanvas);
-    observer.observe(canvas.current!);
-  }, []);
+    this.onVisibilityChange = this.onVisibilityChange.bind(this);
+    this.onCanvasRefAvailable = this.onCanvasRefAvailable.bind(this);
+    this.updateCanvas = this.updateCanvas.bind(this);
+    this.canvasInView = this.canvasInView.bind(this);
+  }
 
-  useEffect(() => {
-    if (
-      seekTime > 0 &&
-      (previous?.seekIndex !== seekIndex ||
-        Math.floor(previous.seekTime * 60) !== Math.floor(seekTime * 60))
-    ) {
-      updateCanvas();
+  componentDidMount() {
+    this.componentDidUpdate({
+      isLive: false,
+      message: {
+        id: '',
+        bus: 0,
+        address: 0,
+        entries: [],
+        byteColors: [],
+        byteStateChangeCounts: [],
+        frame: undefined,
+        lastUpdated: 0,
+      },
+      seekTime: 0,
+      seekIndex: 0,
+    });
+  }
+
+  shouldComponentUpdate(nextProps: Props) {
+    if (nextProps.isLive && nextProps.message.entries.length) {
+      const nextLastEntry = nextProps.message.entries[nextProps.message.entries.length - 1];
+      const curLastEntry = this.props.message.entries[this.props.message.entries.length - 1];
+
+      return !nextLastEntry || !curLastEntry || nextLastEntry.hexData !== curLastEntry.hexData;
     }
-  }, [seekIndex, seekTime]);
+    return nextProps.seekTime !== this.props.seekTime;
+  }
 
-  const canvasInView = useCallback(() => {
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.message !== this.props.message) {
+      let rowCount;
+      if (this.props.message.frame && this.props.message.frame.size) {
+        rowCount = Math.ceil(this.props.message.frame.size / 8);
+      } else {
+        rowCount = Math.ceil(
+          DbcUtils.maxMessageSize(this.props.message, this.state.maxMessageBytes) / 8,
+        );
+      }
+      if (this.canvas) {
+        this.canvas.height = rowCount * 15;
+      }
+    }
+
+    if (
+      prevProps.seekIndex !== this.props.seekIndex ||
+      Math.floor(prevProps.seekTime * 60) !== Math.floor(this.props.seekTime * 60)
+    ) {
+      this.updateCanvas();
+    }
+  }
+
+  onVisibilityChange(isVisible: boolean) {
+    if (isVisible !== this.state.isVisible) {
+      this.setState({ isVisible });
+    }
+  }
+
+  onCanvasRefAvailable(ref: HTMLCanvasElement) {
+    if (!ref) return;
+
+    this.canvas = ref;
+    this.canvas.width = 160;
+    let rowCount;
+    if (this.props.message.frame && this.props.message.frame.size) {
+      rowCount = Math.ceil(this.props.message.frame.size / 8);
+    } else {
+      rowCount = Math.ceil(
+        DbcUtils.maxMessageSize(this.props.message, this.state.maxMessageBytes) / 8,
+      );
+    }
+    this.canvas.height = rowCount * 15;
+
+    const observer = new IntersectionObserver(this.updateCanvas);
+    observer.observe(this.canvas);
+  }
+
+  canvasInView() {
     return (
       !window.visualViewport ||
-      !canvas.current ||
-      (canvas?.current.getBoundingClientRect().y >= 140 &&
-        window.visualViewport.height >= canvas?.current.getBoundingClientRect().y)
+      !this.canvas ||
+      (this.canvas.getBoundingClientRect().y >= 140 &&
+        window.visualViewport.height >= this.canvas.getBoundingClientRect().y)
     );
-  }, [canvas]);
+  }
 
-  const findMostRecentMessage = useCallback(
-    (time: number) => {
-      let mostRecentMessageIndex = null;
-      if (time >= lastSeekTime) {
-        for (let i = lastMessageIndex; i < message.entries.length; ++i) {
-          const msg = message.entries[i];
-          if (msg && msg.relTime >= time) {
-            mostRecentMessageIndex = i;
-            break;
-          }
+  findMostRecentMessage(seekTime: number) {
+    const { message } = this.props;
+    const { lastMessageIndex, lastSeekTime } = this.state;
+    let mostRecentMessageIndex = null;
+    if (seekTime >= lastSeekTime) {
+      for (let i = lastMessageIndex; i < message.entries.length; ++i) {
+        const msg = message.entries[i];
+        if (msg && msg.relTime >= seekTime) {
+          mostRecentMessageIndex = i;
+          break;
         }
       }
+    }
 
-      if (!mostRecentMessageIndex) {
-        // TODO this can be faster with binary search, not currently a bottleneck though.
+    if (!mostRecentMessageIndex) {
+      // TODO this can be faster with binary search, not currently a bottleneck though.
 
-        mostRecentMessageIndex = message.entries.findIndex((e) => e.relTime >= time);
-      }
+      mostRecentMessageIndex = message.entries.findIndex((e) => e.relTime >= seekTime);
+    }
 
-      if (mostRecentMessageIndex) {
-        setLastMessageIndex(mostRecentMessageIndex);
-        setLastSeekTime(time);
+    if (mostRecentMessageIndex) {
+      this.setState({
+        lastMessageIndex: mostRecentMessageIndex,
+        lastSeekTime: seekTime,
+      });
+      return message.entries[mostRecentMessageIndex];
+    }
 
-        return message.entries[mostRecentMessageIndex];
-      }
+    return undefined;
+  }
 
-      return undefined;
-    },
-    [lastSeekTime, lastMessageIndex, message, seekTime],
-  );
-
-  const updateCanvas = () => {
-    if (!canvas.current || message.entries.length === 0 || !canvasInView()) {
+  updateCanvas() {
+    const { message, isLive, seekTime } = this.props;
+    if (!this.canvas || message.entries.length === 0 || !this.canvasInView()) {
       return;
     }
 
     let mostRecentMsg: MessageEntry | undefined = message.entries[message.entries.length - 1];
     if (!isLive) {
-      mostRecentMsg = findMostRecentMessage(seekTime);
+      mostRecentMsg = this.findMostRecentMessage(seekTime);
 
       if (!mostRecentMsg) {
-        // eslint-disable-next-line prefer-destructuring
         mostRecentMsg = message.entries[0];
       }
     }
 
-    const ctx = canvas.current.getContext('2d');
+    const ctx = this.canvas.getContext('2d');
+    // ctx.clearRect(0, 0, 180, 15);
 
     for (let i = 0; i < message.byteStateChangeCounts.length; ++i) {
       const hexData = mostRecentMsg.hexData.substr(i * 2, 2);
 
       const x = (i % 8) * 20;
-      const y = Math.floor(i / 8) * 20;
+      const y = Math.floor(i / 8) * 15;
 
       ctx!.fillStyle = message.byteColors[i];
-      ctx!.fillRect(x, y, 20, 20);
+      ctx!.fillRect(x, y, 20, 15);
 
       ctx!.font = `12px ${theme.fonts.mono}`;
       ctx!.fillStyle = 'black';
-      ctx!.fillText(hexData || '-', x + 2, y + 15);
+      ctx!.fillText(hexData || '-', x + 2, y + 12);
     }
-  };
+  }
 
-  return <canvas ref={canvas} height={20} />;
+  render() {
+    return (
+      <canvas
+        ref={this.onCanvasRefAvailable}
+        className="cabana-meta-messages-list-item-bytes-canvas"
+      />
+    );
+  }
 }
-
-export default memo(MessageBytes, isEqual);
 
 type Props = {
   isLive: boolean;
@@ -111,12 +189,9 @@ type Props = {
   seekIndex: number;
 };
 
-function isEqual(prevProps: Props, nextProps: Props) {
-  if (nextProps.isLive && nextProps.message.entries.length) {
-    const nextLastEntry = nextProps.message.entries[nextProps.message.entries.length - 1];
-    const curLastEntry = prevProps.message.entries[prevProps.message.entries.length - 1];
-
-    return !(!nextLastEntry || !curLastEntry || nextLastEntry.hexData !== curLastEntry.hexData);
-  }
-  return prevProps.seekTime === nextProps.seekTime;
-}
+type State = {
+  isVisible: boolean;
+  lastMessageIndex: number;
+  lastSeekTime: number;
+  maxMessageBytes: number;
+};

@@ -60,9 +60,11 @@ export default function useCabana(props: Props) {
     segments,
     startTime,
   } = props;
+
   const { colorMode } = useColorMode();
   const borderColor = colorMode !== 'dark' ? 'gray.200' : 'whiteAlpha.300';
   const isMounted = useRef(false);
+
   const [messages, setMessages] = useState<Messages>({});
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<string | null>(null);
@@ -213,12 +215,8 @@ export default function useCabana(props: Props) {
   }, []);
 
   useEffect(() => {
-    if (isMounted.current) {
-      spawnWorker();
-    } else {
-      isMounted.current = true;
-    }
-  }, [currentParts]);
+    spawnWorker();
+  }, []);
 
   useEffect(() => {
     if (partsLoaded > 0) {
@@ -227,11 +225,11 @@ export default function useCabana(props: Props) {
   }, [partsLoaded]);
 
   useEffect(() => {
-    if (currentPart > 0) {
+    if (currentPart > 0 && currentPart <= currentParts[1]) {
       spawnWorker();
       loadMessagesFromCache();
     }
-  }, [currentPart]);
+  }, [currentPart, currentParts]);
 
   useEffect(() => {
     if (githubAuthToken) {

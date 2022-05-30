@@ -13,6 +13,7 @@ const HLS = forwardRef(
       onLoadStart,
       onLoadEnd,
       onPlaySeek,
+      setVideoDuration,
     }: Props,
     ref: Ref<HTMLVideoElement>,
   ) => {
@@ -104,6 +105,7 @@ const HLS = forwardRef(
       if (shouldInitVideoTime && videoRef.current) {
         videoRef.current.currentTime = startTime;
         setShouldInitVideoTime(false);
+        setVideoDuration(videoRef.current.duration);
       }
     }, [shouldInitVideoTime, startTime]);
 
@@ -135,4 +137,5 @@ type Props = {
   onLoadStart: () => void;
   onLoadEnd: () => void;
   onPlaySeek: (offset: number) => void;
+  setVideoDuration: (duration: number) => void;
 };
