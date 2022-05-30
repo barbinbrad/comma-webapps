@@ -157,6 +157,11 @@ export type Messages = { [key: string]: Message };
 
 export type MessageTuple = [string, Message];
 
+export type PlottedSignals = {
+  messageId: string;
+  signalUid: string;
+};
+
 export type TimedCanMessages = {
   time: number;
   canMessages: CanMessage[];

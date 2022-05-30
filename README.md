@@ -28,6 +28,7 @@ Just pick something and work on it. Take liberties or don't. There are three bas
 | ------------------- | -------------------------------------------------- | :-: | :---------: |
 | `packages/config`   | Shared, inheritable `eslint`, `jest`, etc          | ✅  |             |
 | `packages/design`   | Shared UI components built with `@chakra-ui/react` | ✅  |             |
+| `packages/hooks `   | Shared React hooks shared between apps             | ✅  |             |
 | `packages/tsconfig` | Shared, inheritable `tsconfig` configs             | ✅  |             |
 
 ## Running Locally

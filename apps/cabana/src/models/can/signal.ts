@@ -1,5 +1,5 @@
 /* eslint-disable no-bitwise */
-import { ISignal } from '../../types';
+import { ISignal } from '~/types';
 import utils from './utils';
 
 export default class Signal implements ISignal {

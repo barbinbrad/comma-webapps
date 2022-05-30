@@ -1,14 +1,7 @@
 /* eslint-disable no-param-reassign */
 import { theme } from 'design';
 import { Buffer } from 'buffer/';
-import {
-  ByteStateChangeCounts,
-  CanMessage,
-  Message,
-  Messages,
-  MessageEntry,
-  IDbc,
-} from '../../types';
+import { ByteStateChangeCounts, CanMessage, Message, Messages, MessageEntry, IDbc } from '~/types';
 
 const utils = {
   findMaxByteStateChangeCount(messages: { [key: string]: Message }) {

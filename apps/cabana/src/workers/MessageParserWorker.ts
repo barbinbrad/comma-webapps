@@ -1,9 +1,9 @@
 /* eslint-env worker */
 /* eslint-disable no-restricted-globals, no-param-reassign */
 
-import DBC from '../models/dbc';
-import utils from '../models/dbc/utils';
-import { MessageEntry, MessageParserWorkerInput } from '../types';
+import DBC from '~/models/can';
+import utils from '~/models/can/utils';
+import { MessageEntry, MessageParserWorkerInput } from '~/types';
 
 /*  
     RawLogDownloader API
