@@ -3,12 +3,11 @@ import { Box } from '@chakra-ui/react';
 import styled from '@emotion/styled';
 import { video as VideoApi } from 'api';
 import Loading from '~/components/Loading';
-import HLS from '~/components/HLS';
-import RouteSeeker from '~/components/RouteSeeker';
+import HLS from './HLS';
+import RouteSeeker from './RouteSeeker';
 
 export default function RouteVideoSync(props: Props) {
   const {
-    borderColor,
     maxqcamera,
     playing,
     segment,
@@ -128,7 +127,7 @@ export default function RouteVideoSync(props: Props) {
   }, []);
 
   const loadingOverlay = () => {
-    return <LoadingOverlay emptyColor={borderColor} />;
+    return <LoadingOverlay />;
   };
 
   return (
@@ -170,7 +169,6 @@ export default function RouteVideoSync(props: Props) {
 }
 
 type Props = {
-  borderColor: string;
   maxqcamera: number;
   segment: number[];
   segmentIndices: number[];
@@ -194,4 +192,5 @@ const LoadingOverlay = styled(Loading)`
   width: 100%;
   height: 100%;
   z-index: 999;
+  background: rgb(0, 0, 0, 0.8);
 `;

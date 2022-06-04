@@ -1,16 +1,15 @@
 import { Box } from '@chakra-ui/react';
 import { Props } from './props';
-import useExplorer from './useExplorer';
-import RouteVideoSync from '~/components/RouteVideoSync';
+import useVideo from './useVideo';
+import RouteVideoSync from './RouteVideoSync';
 
 export default function Container(props: Props) {
-  const state = useExplorer(props);
-  return <Explorer {...state} />;
+  const state = useVideo(props);
+  return <Video {...state} />;
 }
 
-function Explorer(props: ReturnType<typeof useExplorer>) {
+function Video(props: ReturnType<typeof useVideo>) {
   const {
-    borderColor,
     maxqcamera,
     playing,
     playSpeed,
@@ -30,7 +29,6 @@ function Explorer(props: ReturnType<typeof useExplorer>) {
   return (
     <Box w="full" h="full">
       <RouteVideoSync
-        borderColor={borderColor}
         maxqcamera={maxqcamera || 0}
         playing={playing}
         playSpeed={playSpeed}

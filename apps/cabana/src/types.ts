@@ -28,6 +28,7 @@ export interface IFrame {
   extended: boolean;
   comment: string | null;
   signals: { [key: string]: ISignal };
+  text: () => string;
 }
 
 export interface IBoardUnit {
@@ -209,9 +210,14 @@ export type SharedSignature = {
 
 export type SpawnWorkerOptions = {
   prevMsgEntries?: { [key: string]: MessageEntry };
+  spawnWorkerHash?: string;
+  prepend?: boolean;
+  currentParts?: number[];
 };
 
-export type Thumbnail = {};
+export type Thumbnail = {
+  monoTime: number;
+};
 
 export type WorkerHashMap = {
   [key: string]: { part: number; worker: Worker; prevMsgEntries?: { [key: string]: MessageEntry } };

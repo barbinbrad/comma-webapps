@@ -8,30 +8,20 @@ import debounce from '~/utils/debounce';
 export default function useExplorer(props: Props) {
   const {
     autoplay,
-    borderColor,
-    canFrameOffset,
     currentParts,
     firstCanTime,
-    isLive,
     maxqcamera,
     messages,
-    partsCount,
-    partsLoaded,
     routeStartTime,
     url,
-    seekTime,
     seekIndex,
     selectedMessage,
-    selectedPart,
     startSegments,
     startTime,
     thumbnails,
     videoOffset,
-    onConfirmedSignalChange,
     onSeek,
     onUserSeek,
-    onPartChange,
-    showEditMessageModal,
   } = props;
 
   const [entriesCount, setEntriesCount] = useState(0);
@@ -40,7 +30,6 @@ export default function useExplorer(props: Props) {
   const [plottedSignals, setPlottedSignals] = useState<PlottedSignals[][]>([]);
   const [segment, setSegment] = useState(startSegments || []);
   const [segmentIndices, setSegmentIndices] = useState<number[]>([]);
-  const [showingAddSignal, setShowingAddSignal] = useState(true);
   const [userSeekIndex, setUserSeekIndex] = useState(0);
   const [userSeekTime, setUserSeekTime] = useState(0);
 
@@ -253,16 +242,7 @@ export default function useExplorer(props: Props) {
     }
   }, [segment, segmentIndices]);
 
-  const showAddSignal = useCallback(() => {
-    setShowingAddSignal(true);
-  }, []);
-
-  const toggleAddSignal = useCallback(() => {
-    setShowingAddSignal((prevAddSignal) => !prevAddSignal);
-  }, []);
-
   return {
-    borderColor,
     firstCanTime,
     maxqcamera,
     messages,
@@ -286,8 +266,6 @@ export default function useExplorer(props: Props) {
     onSignalUnplotPressed,
     onUserSeek,
     onVideoClick,
-    showAddSignal,
-    toggleAddSignal,
     timeWindow,
     updatePlaySpeed,
   };

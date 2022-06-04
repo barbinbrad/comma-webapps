@@ -1,13 +1,15 @@
 import React, { Ref, RefObject, forwardRef, useState, useEffect, useCallback, useRef } from 'react';
 import { Box } from '@chakra-ui/react';
 import styled from '@emotion/styled';
+import { theme } from 'design';
+import PlayButton from './PlayButton';
 import debounce from '~/utils/debounce';
 
 const styles = {
   hidden: { display: 'none' },
   compressed: { width: 0 },
   marker: {
-    width: 50,
+    width: 20,
   },
   tooltip: {
     width: 50,
@@ -45,24 +47,15 @@ const RouteSeeker = forwardRef(
     const [isPlaying, setIsPlaying] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
 
-    // const previous = usePrevious({ videoLength });
-
     useEffect(() => {
+      console.log(1);
       setSeekedBarStyle(styles.compressed);
       setMarkerStyle(styles.hidden);
       setTooltipStyle(styles.hidden);
     }, [segmentIndices]);
 
-    // useEffect(() => {
-    //   console.log(videoLength);
-    //   if (previous && previous.videoLength) {
-    //     const secondsSeeked = ratio * previous.videoLength;
-    //     const newRatio = secondsSeeked / videoLength;
-    //     updateSeekedBar(newRatio);
-    //   }
-    // }, [videoLength]);
-
     useEffect(() => {
+      console.log(2);
       if (segment.length || videoRef.current) {
         const newRatio = segmentProgress(nearestFrameTime);
         updateSeekedBar(newRatio);
@@ -70,6 +63,7 @@ const RouteSeeker = forwardRef(
     }, [nearestFrameTime]);
 
     useEffect(() => {
+      console.log(3);
       if (playing && !isPlaying) {
         internalOnPlay();
       } else if (!playing && isPlaying) {
@@ -79,6 +73,7 @@ const RouteSeeker = forwardRef(
 
     useEffect(() => {
       return () => {
+        console.log(4);
         if (playTimer.current) {
           window.cancelAnimationFrame(playTimer.current);
         }
@@ -119,99 +114,107 @@ const RouteSeeker = forwardRef(
     }, [videoLength, segment, startTime, ratio]);
 
     const updateSeekedBar = useCallback((newRatio: number) => {
+      console.log(6);
       setSeekedBarStyle({ width: `${100 * newRatio}%` });
     }, []);
 
     const internalOnPlay = useCallback(() => {
+      console.log(7);
       playTimer.current = window.requestAnimationFrame(executePlayTimer);
 
       setIsPlaying(true);
       setRatio((prevRatio) => {
         return prevRatio >= 1 ? 0 : prevRatio;
       });
+      console.log('internalPlay');
       onPlay();
     }, []);
 
     const internalOnPause = useCallback(() => {
+      console.log(8);
       if (playTimer.current) {
         window.cancelAnimationFrame(playTimer.current);
       }
-
+      console.log('internalPause');
       setIsPlaying(false);
       onPause();
     }, []);
 
     const updateDraggingSeek = debounce((newRatio: number) => onUserSeek(newRatio), 250);
 
-    const mouseEventXOffsetPercent = (e: React.MouseEvent<HTMLDivElement>) => {
+    const mouseEventXOffsetPercent = (e: React.MouseEvent<HTMLDivElement>, clicked = false) => {
       if (progressBarRef.current) {
         const rect = progressBarRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
-
+        if (clicked)
+          console.log(e.clientX, rect.left, rect.width, progressBarRef.current.offsetWidth);
         return 100 * (x / progressBarRef.current.offsetWidth);
       }
       return 0;
     };
 
     const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      let newRatio = mouseEventXOffsetPercent(e) / 100;
+      console.log(9);
+      let newRatio = mouseEventXOffsetPercent(e, true) / 100;
+      console.log(newRatio);
       newRatio = Math.min(1, Math.max(0, ratio));
       updateSeekedBar(newRatio);
       onUserSeek(newRatio);
     };
 
     const onMouseDown = () => {
+      console.log(10);
       setIsDragging(true);
     };
 
     const onMouseUp = () => {
+      console.log(11);
       setIsDragging(false);
     };
 
     const onMouseLeave = () => {
+      console.log(12);
       setMarkerStyle(styles.hidden);
       setTooltipStyle(styles.hidden);
       setIsDragging(false);
     };
 
-    const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-      const markerOffsetPct = mouseEventXOffsetPercent(e);
-      if (markerOffsetPct < 0) {
-        onMouseLeave();
-        return;
-      }
+    const onMouseMove = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        console.log(13);
+        const markerOffsetPct = mouseEventXOffsetPercent(e);
+        if (markerOffsetPct < 0) {
+          onMouseLeave();
+          return;
+        }
 
-      const markerLeft = `calc(${markerOffsetPct}% - ${styles.marker.width / 2}px)`;
-      const newMarkerStyle = {
-        display: '',
-        left: markerLeft,
-      };
+        const markerLeft = `calc(${markerOffsetPct}% - ${styles.marker.width / 2}px)`;
+        const newMarkerStyle = {
+          display: '',
+          left: markerLeft,
+        };
 
-      const tooltipLeft = `calc(${markerOffsetPct}% - ${styles.tooltip.width / 2}px)`;
-      const newTooltipStyle = { display: 'flex', left: tooltipLeft };
+        const tooltipLeft = `calc(${markerOffsetPct}% - ${styles.tooltip.width / 2}px)`;
+        const newTooltipStyle = { display: 'flex', left: tooltipLeft };
 
-      const newRatio = Math.max(0, markerOffsetPct / 100);
-      if (isDragging) {
-        updateSeekedBar(newRatio);
-        updateDraggingSeek(newRatio);
-      }
+        const newRatio = Math.max(0, markerOffsetPct / 100);
+        if (isDragging) {
+          updateSeekedBar(newRatio);
+          updateDraggingSeek(newRatio);
+        }
 
-      setMarkerStyle(newMarkerStyle);
-      setTooltipStyle(newTooltipStyle);
-      setTooltipTime(ratioTime(newRatio).toFixed(3));
-    };
+        setMarkerStyle(newMarkerStyle);
+        setTooltipStyle(newTooltipStyle);
+        setTooltipTime(ratioTime(newRatio).toFixed(3));
+      },
+      [isDragging],
+    );
 
     return (
       <Box position="relative">
         <VideoControls>
-          {/* <PlayButton
-          className="cabana-explorer-visuals-camera-seeker-playbutton"
-          onPlay={this.onPlay}
-          onPause={this.onPause}
-          isPlaying={this.state.isPlaying}
-        /> */}
+          <PlayButton onPlay={onPlay} onPause={onPause} isPlaying={isPlaying} />
           <ProgressBar
-            className="cabana-explorer-visuals-camera-seeker-progress"
             onMouseMove={onMouseMove}
             onMouseLeave={onMouseLeave}
             onMouseDown={onMouseDown}
@@ -249,21 +252,19 @@ function roundTime(time: number) {
 }
 
 const VideoControls = styled.div`
-  background: rgba(233, 233, 233, 0.7);
-  top: -35px;
+  top: -50px;
   position: absolute;
-  width: 100%;
+  width: calc(100% - 5px);
   z-index: 4;
   flex: 1;
   flex-direction: row;
   display: flex;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.5));
   user-select: none;
   cursor: pointer;
 `;
 
 const ProgressBar = styled.div`
-  height: 15px;
+  height: 20px;
   width: 100%;
   margin-top: 10px;
   margin-bottom: 10px;
@@ -271,6 +272,7 @@ const ProgressBar = styled.div`
   display: flex;
   flex: 10;
   z-index: 1;
+  background: rgba(255, 255, 255, 0.2);
 `;
 
 const Tooltip = styled.div`
@@ -302,10 +304,10 @@ const Marker = styled.div`
 
 const SeekedBar = styled.div`
   position: absolute;
-  height: 14px;
+  height: 19px;
   left: 0;
   top: 0;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: ${theme.colors.brand[500]};
   z-index: 2;
 `;
 
