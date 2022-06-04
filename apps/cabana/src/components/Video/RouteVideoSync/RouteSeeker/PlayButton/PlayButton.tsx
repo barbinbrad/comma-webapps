@@ -20,6 +20,7 @@ export default function PlayButton({ isPlaying, onPause, onPlay }: Props) {
       icon={isPlaying ? <FaPause /> : <FaPlay />}
       marginLeft={2}
       marginRight={-1}
+      zIndex={4}
       onClick={handleClick}
     />
   );

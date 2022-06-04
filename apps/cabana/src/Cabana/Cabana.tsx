@@ -83,6 +83,7 @@ export default class Cabana extends Component<Props, State> {
       spawnWorkerHash: null,
       loadingParts: [],
       loadedParts: [],
+      loadingComplete: false,
       showOnboarding: false,
       showLoadDbc: false,
       showSaveDbc: false,
@@ -490,6 +491,7 @@ export default class Cabana extends Component<Props, State> {
     this.setState({
       currentWorkers,
       loadingParts,
+      loadingComplete: false,
     });
 
     worker.onmessage = (e: MessageEvent<RawLogWorkerOutput>) => {
@@ -760,7 +762,7 @@ export default class Cabana extends Component<Props, State> {
 
     console.log('Done with old messages', performance.now() - start);
 
-    this.setState({ messages, thumbnails });
+    this.setState({ messages, thumbnails, loadingComplete: true });
 
     this.loadMessagesFromCacheRunning = false;
   }
@@ -1166,6 +1168,7 @@ export default class Cabana extends Component<Props, State> {
       currentParts,
       dbcFilename,
       dbcLastSaved,
+      loadingComplete,
       seekTime,
       seekIndex,
       shareUrl,
@@ -1189,7 +1192,7 @@ export default class Cabana extends Component<Props, State> {
         </Flex>
         <Flex h="full">
           <HStack w="100vw" spacing={0}>
-            <Flex as="aside" direction="column" h="full" w="full" maxWidth={530} overflow="scroll">
+            <Flex as="aside" direction="column" h="full" w="full" maxWidth={440} overflow="scroll">
               <MessageList
                 messages={messages}
                 selectedMessages={selectedMessages}
@@ -1205,6 +1208,7 @@ export default class Cabana extends Component<Props, State> {
                 shareUrl={shareUrl}
                 isDemo={isDemo}
                 isLive={live}
+                isLoadingComplete={loadingComplete}
               />
             </Flex>
             {/* <Flex
@@ -1296,6 +1300,7 @@ export type State = {
   spawnWorkerHash: string | null;
   loadingParts: number[];
   loadedParts: number[];
+  loadingComplete: boolean;
   showOnboarding: boolean;
   showLoadDbc: boolean;
   showSaveDbc: boolean;
