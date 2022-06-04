@@ -1,25 +1,32 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Box } from '@chakra-ui/react';
+import styled from '@emotion/styled';
 import { video as VideoApi } from 'api';
+import Loading from '~/components/Loading';
+import HLS from './HLS';
+import RouteSeeker from './RouteSeeker';
 
-export default function RouteVideoSync({
-  segment,
-  maxqcamera = 0,
-  startTime,
-  userSeekTime,
-  playing,
-  segmentIndices,
-  url = null,
-  videoOffset,
-  onVideoClick,
-  onPlaySeek,
-  onUserSeek,
-  onPlay,
-  onPause,
-  playSpeed,
-}: Props) {
+export default function RouteVideoSync(props: Props) {
+  const {
+    maxqcamera,
+    playing,
+    segment,
+    startTime,
+    userSeekTime,
+    segmentIndices,
+    url,
+    videoOffset,
+    onVideoClick,
+    onPlaySeek,
+    onUserSeek,
+    onPlay,
+    onPause,
+    playSpeed,
+  } = props;
+
   const [isLoading, setIsLoading] = useState(true);
   const [source, setSource] = useState<string | null>(null);
+  const [videoLength, setVideoLength] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -36,11 +43,17 @@ export default function RouteVideoSync({
 
   useEffect(() => {
     if (videoRef.current) {
+      setVideoLength(videoRef.current.duration);
+    }
+  }, [videoRef.current]);
+
+  useEffect(() => {
+    if (videoRef.current) {
       videoRef.current.currentTime = userSeekTime - videoOffset;
     }
   }, [userSeekTime]);
 
-  const handleUserSeek = useCallback(
+  const internalUserSeek = useCallback(
     (ratio: number) => {
       /* ratio in [0,1] */
       const seekTime = ratioTime(ratio);
@@ -56,15 +69,18 @@ export default function RouteVideoSync({
         funcSeekToRatio();
       }
     },
-    [onUserSeek],
+    [videoOffset],
   );
 
-  const handlePlaySeek = useCallback((offset: number) => {
-    const newSeekTime = offset + videoOffset;
-    onPlaySeek(newSeekTime);
-  }, []);
+  const internalPlaySeek = useCallback(
+    (offset: number) => {
+      const newSeekTime = offset + videoOffset;
+      onPlaySeek(newSeekTime);
+    },
+    [videoOffset],
+  );
 
-  const getVideoLength = useCallback(() => {
+  const getVideoLength = () => {
     if (segment.length) {
       return segment[1] - segment[0];
     }
@@ -74,7 +90,7 @@ export default function RouteVideoSync({
     }
 
     return 0;
-  }, []);
+  };
 
   const getStartTime = useCallback(() => {
     if (segment.length) {
@@ -84,13 +100,12 @@ export default function RouteVideoSync({
     return 0;
   }, []);
 
-  const segmentProgress = useCallback((currentTime: number) => {
+  const segmentProgress = (currentTime: number) => {
     // returns progress as number in [0,1]
     const start = getStartTime();
-
     const ratio = Math.max(currentTime - start, 0) / getVideoLength();
     return Math.max(0, Math.min(1, ratio));
-  }, []);
+  };
 
   const ratioTime = useCallback(
     (ratio: number) => {
@@ -107,51 +122,60 @@ export default function RouteVideoSync({
     setIsLoading(false);
   }, []);
 
+  const setVideoDuration = useCallback((duration: number) => {
+    setVideoLength(duration);
+  }, []);
+
+  const loadingOverlay = () => {
+    return <LoadingOverlay />;
+  };
+
   return (
-    <Box>
+    <Box position="relative" w="full" h="full">
       {isLoading ? loadingOverlay() : null}
       {source && (
         <HLS
+          ref={videoRef}
           source={source}
           startTime={(startTime || 0) - videoOffset}
-          videoLength={getVideoLength()}
           playbackSpeed={playSpeed}
-          videoRef={videoRef}
           playing={playing}
           onClick={onVideoClick}
           onLoadStart={onLoadStart}
           onLoadEnd={onLoadEnd}
-          onUserSeek={handleUserSeek}
-          onPlaySeek={handlePlaySeek}
+          onPlaySeek={internalPlaySeek}
+          setVideoDuration={setVideoDuration}
         />
       )}
-      <RouteSeeker
-        nearestFrameTime={userSeekTime}
-        segmentProgress={segmentProgress}
-        startTime={getStartTime() - videoOffset}
-        videoLength={getVideoLength()}
-        segmentIndices={segmentIndices}
-        onUserSeek={handleUserSeek}
-        onPlaySeek={handlePlaySeek}
-        videoElement={videoRef}
-        onPlay={onPlay}
-        onPause={onPause}
-        playing={playing}
-        ratioTime={ratioTime}
-        segment={segment}
-      />
+      {videoLength && (
+        <RouteSeeker
+          ref={videoRef}
+          nearestFrameTime={userSeekTime}
+          playing={playing}
+          segment={segment}
+          segmentIndices={segmentIndices}
+          startTime={getStartTime() - videoOffset}
+          videoLength={videoLength}
+          onUserSeek={internalUserSeek}
+          onPlaySeek={internalPlaySeek}
+          onPlay={onPlay}
+          onPause={onPause}
+          ratioTime={ratioTime}
+          segmentProgress={segmentProgress}
+        />
+      )}
     </Box>
   );
 }
 
 type Props = {
-  maxqcamera?: number;
+  maxqcamera: number;
   segment: number[];
   segmentIndices: number[];
   startTime: number;
   playing: boolean;
   playSpeed: number;
-  url?: string | null;
+  url: string | null;
   userSeekTime: number;
   videoOffset: number;
   onPause: () => void;
@@ -160,3 +184,13 @@ type Props = {
   onUserSeek: (time: number) => void;
   onVideoClick: () => void;
 };
+
+const LoadingOverlay = styled(Loading)`
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  background: rgb(0, 0, 0, 0.8);
+`;

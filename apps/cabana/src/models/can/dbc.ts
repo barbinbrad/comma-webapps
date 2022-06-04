@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-import { IDbc } from '~/types';
+import { IDbc, IFrame, ISignal } from '~/types';
 import Signal from './signal';
 import Frame from './frame';
 import BoardUnit from './boardunit';
@@ -53,7 +53,7 @@ export default class DBC implements IDbc {
 
   dbcText?: string;
 
-  messages: Map<number, Frame>;
+  messages: Map<number, IFrame>;
 
   valueTables: Map<string, Map<string, string>>;
 
@@ -62,7 +62,7 @@ export default class DBC implements IDbc {
   constructor(dbcString?: string) {
     this.boardUnits = [];
     this.comments = [];
-    this.messages = new Map<number, Frame>();
+    this.messages = new Map<number, IFrame>();
     this.valueTables = new Map<string, Map<string, string>>();
 
     if (dbcString !== undefined) {
@@ -112,12 +112,12 @@ export default class DBC implements IDbc {
     const boardUnitsText = this.boardUnits.map((bu) => bu.text()).join(' ');
     txt += `\nBU_: ${boardUnitsText}\n\n\n`;
 
-    const frames = Array.from(this.messages.values()).map((frame: Frame) => frame);
+    const frames = Array.from(this.messages.values()).map((frame: IFrame) => frame);
 
     txt += `${frames.map((f) => f.text()).join('\n\n')}\n\n`;
 
     const messageTxs = frames
-      .map((f: Frame) => {
+      .map((f: IFrame) => {
         return {
           id: f.id,
           transmitters: f.transmitters.slice(1),
@@ -140,7 +140,7 @@ export default class DBC implements IDbc {
       .join('\n');
 
     const signalsByMsgId = frames
-      .map((f: Frame) =>
+      .map((f: IFrame) =>
         Object.values(f.signals).map((sig) => {
           return { id: f.id, sig };
         }),
@@ -509,7 +509,7 @@ export default class DBC implements IDbc {
     this.valueTables = valueTables;
   }
 
-  valueForIntSignal(signalSpec: Signal, view: DataView): bigint | number {
+  valueForIntSignal(signalSpec: ISignal, view: DataView): bigint | number {
     let sigLsb: number;
     let sigMsb: number;
 
@@ -529,7 +529,7 @@ export default class DBC implements IDbc {
   }
 
   valueForLittleIntSignal(
-    signalSpec: Signal,
+    signalSpec: ISignal,
     view: DataView,
     sigLsb: number,
     sigMsb: number,
@@ -556,7 +556,7 @@ export default class DBC implements IDbc {
   }
 
   valueForBigIntSignal(
-    signalSpec: Signal,
+    signalSpec: ISignal,
     view: DataView,
     sigLsb: number,
     sigMsb: number,

@@ -2,35 +2,26 @@ import { useState, useCallback, useEffect } from 'react';
 import { useEscape } from 'hooks';
 import Entries from '~/models/can/entries';
 import { Props } from './props';
-import { Message, PlottedSignals } from '~/types';
+import { PlottedSignals } from '~/types';
 import debounce from '~/utils/debounce';
 
 export default function useExplorer(props: Props) {
   const {
     autoplay,
-    canFrameOffset,
     currentParts,
     firstCanTime,
-    isLive,
     maxqcamera,
     messages,
-    partsCount,
-    partsLoaded,
     routeStartTime,
     url,
-    seekTime,
     seekIndex,
     selectedMessage,
-    selectedPart,
     startSegments,
     startTime,
     thumbnails,
     videoOffset,
-    onConfirmedSignalChange,
     onSeek,
     onUserSeek,
-    onPartChange,
-    showEditMessageModal,
   } = props;
 
   const [entriesCount, setEntriesCount] = useState(0);
@@ -39,7 +30,6 @@ export default function useExplorer(props: Props) {
   const [plottedSignals, setPlottedSignals] = useState<PlottedSignals[][]>([]);
   const [segment, setSegment] = useState(startSegments || []);
   const [segmentIndices, setSegmentIndices] = useState<number[]>([]);
-  const [showingAddSignal, setShowingAddSignal] = useState(true);
   const [userSeekIndex, setUserSeekIndex] = useState(0);
   const [userSeekTime, setUserSeekTime] = useState(0);
 
@@ -252,14 +242,6 @@ export default function useExplorer(props: Props) {
     }
   }, [segment, segmentIndices]);
 
-  const showAddSignal = useCallback(() => {
-    setShowingAddSignal(true);
-  }, []);
-
-  const toggleAddSignal = useCallback(() => {
-    setShowingAddSignal((prevAddSignal) => !prevAddSignal);
-  }, []);
-
   return {
     firstCanTime,
     maxqcamera,
@@ -284,8 +266,6 @@ export default function useExplorer(props: Props) {
     onSignalUnplotPressed,
     onUserSeek,
     onVideoClick,
-    showAddSignal,
-    toggleAddSignal,
     timeWindow,
     updatePlaySpeed,
   };

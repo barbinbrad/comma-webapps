@@ -1,8 +1,8 @@
 /* eslint-env worker */
 /* eslint-disable no-restricted-globals, no-param-reassign */
 
-import DBC from '~/models/can';
-import utils from '~/models/can/utils';
+import DBC from '../models/can';
+import utils from '../models/can/utils';
 import {
   CanWorkerInput,
   MessageEntry,

@@ -20,7 +20,9 @@ import { MdBrightnessLow, MdOutlineBrightness2 } from 'react-icons/md';
 import { FaDiscord } from 'react-icons/fa';
 import { Logo } from 'design';
 
-export default function Navigation() {
+import { Route } from '~/types';
+
+export default function Navigation({ route, showingLoadDbc, showingSaveDbc, saveLog }: Props) {
   const { colorMode, toggleColorMode } = useColorMode();
   const bg = useColorModeValue('white', 'black');
   const mobileNav = useDisclosure();
@@ -120,3 +122,10 @@ export default function Navigation() {
     </chakra.header>
   );
 }
+
+export type Props = {
+  route: Route | null;
+  showingLoadDbc: () => void;
+  showingSaveDbc: () => void;
+  saveLog: () => void;
+};
