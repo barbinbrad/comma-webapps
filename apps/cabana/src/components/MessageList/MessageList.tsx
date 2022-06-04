@@ -1,4 +1,4 @@
-import { Box, Input, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
+import { Box, Input, Spinner, Table, Thead, Tbody, Tr, Th, Td } from '@chakra-ui/react';
 
 import Loading from '~/components/Loading';
 import MessageBytes from './MessageBytes';
@@ -15,6 +15,7 @@ function MessageList(props: ReturnType<typeof useMessageList>) {
   const {
     borderColor,
     isLive,
+    isLoadingComplete,
     messages,
     orderedMessages,
     searchFilter,
@@ -35,7 +36,7 @@ function MessageList(props: ReturnType<typeof useMessageList>) {
       >
         <Td {...styles.first}>{msg.id}</Td>
         <Td {...styles.second}> {msg.frame ? msg.frame.name : ''}</Td>
-        <Td {...styles.numeric}>{msg.entries.length}</Td>
+        {/* <Td {...styles.numeric}>{msg.entries.length}</Td> */}
         <Td {...styles.generic}>
           <MessageBytes
             key={msg.id}
@@ -55,7 +56,7 @@ function MessageList(props: ReturnType<typeof useMessageList>) {
 
   return (
     <>
-      <Box>
+      <Box position="relative">
         <Input
           size="sm"
           border="none"
@@ -63,13 +64,18 @@ function MessageList(props: ReturnType<typeof useMessageList>) {
           value={searchFilter}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchFilter(e.target.value)}
         />
+        {!isLoadingComplete && (
+          <Box position="absolute" right="20px" top="7px">
+            <Spinner speed="1s" emptyColor="gray.300" color="gray.700" size="sm" />
+          </Box>
+        )}
       </Box>
       <Table variant="simple" size="sm" borderColor={borderColor} borderTopWidth={1}>
         <Thead>
           <Tr>
             <Th {...styles.first}>ID</Th>
             <Th {...styles.second}>Name</Th>
-            <Th {...styles.numeric}>Count</Th>
+            {/* <Th {...styles.numeric}>Count</Th> */}
             <Th {...styles.generic}>Bytes</Th>
           </Tr>
         </Thead>

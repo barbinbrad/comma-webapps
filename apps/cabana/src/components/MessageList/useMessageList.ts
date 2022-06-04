@@ -6,6 +6,7 @@ import { Message } from '~/types';
 
 export default function useMessageList({
   isLive,
+  isLoadingComplete,
   messages,
   seekIndex,
   seekTime,
@@ -102,6 +103,7 @@ export default function useMessageList({
   return {
     borderColor,
     isLive,
+    isLoadingComplete,
     messages,
     orderedMessages,
     searchFilter,

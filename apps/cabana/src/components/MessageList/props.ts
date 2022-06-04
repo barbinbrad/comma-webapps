@@ -15,4 +15,5 @@ export type Props = {
   shareUrl: string | null;
   isDemo: boolean;
   isLive: boolean;
+  isLoadingComplete: boolean;
 };
