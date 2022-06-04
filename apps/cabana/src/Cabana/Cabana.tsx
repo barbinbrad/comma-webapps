@@ -49,7 +49,6 @@ import MessageParser from '~/workers/MessageParserWorker?worker';
 import RawLogDownloader from '~/workers/RawLogDownloader?worker';
 
 const dataCache: { [key: number]: DataCache } = {};
-
 export default class Cabana extends Component<Props, State> {
   pandaReader?: Panda;
 
