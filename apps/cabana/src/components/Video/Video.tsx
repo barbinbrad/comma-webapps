@@ -1,7 +1,7 @@
 import { Box } from '@chakra-ui/react';
 import { Props } from './props';
 import useVideo from './useVideo';
-import RouteVideoSync from './RouteVideoSync';
+import Sync from './Sync';
 
 export default function Container(props: Props) {
   const state = useVideo(props);
@@ -28,7 +28,7 @@ function Video(props: ReturnType<typeof useVideo>) {
 
   return (
     <Box w="full" h="full">
-      <RouteVideoSync
+      <Sync
         maxqcamera={maxqcamera || 0}
         playing={playing}
         playSpeed={playSpeed}

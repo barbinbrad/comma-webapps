@@ -16,7 +16,7 @@ const styles = {
   },
 };
 
-const RouteSeeker = forwardRef(
+const Controls = forwardRef(
   (
     {
       nearestFrameTime,
@@ -48,14 +48,12 @@ const RouteSeeker = forwardRef(
     const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
-      console.log(1);
       setSeekedBarStyle(styles.compressed);
       setMarkerStyle(styles.hidden);
       setTooltipStyle(styles.hidden);
     }, [segmentIndices]);
 
     useEffect(() => {
-      console.log(2);
       if (segment.length || videoRef.current) {
         const newRatio = segmentProgress(nearestFrameTime);
         updateSeekedBar(newRatio);
@@ -63,7 +61,6 @@ const RouteSeeker = forwardRef(
     }, [nearestFrameTime]);
 
     useEffect(() => {
-      console.log(3);
       if (playing && !isPlaying) {
         internalOnPlay();
       } else if (!playing && isPlaying) {
@@ -73,7 +70,6 @@ const RouteSeeker = forwardRef(
 
     useEffect(() => {
       return () => {
-        console.log(4);
         if (playTimer.current) {
           window.cancelAnimationFrame(playTimer.current);
         }
@@ -114,28 +110,25 @@ const RouteSeeker = forwardRef(
     }, [videoLength, segment, startTime, ratio]);
 
     const updateSeekedBar = useCallback((newRatio: number) => {
-      console.log(6);
       setSeekedBarStyle({ width: `${100 * newRatio}%` });
     }, []);
 
     const internalOnPlay = useCallback(() => {
-      console.log(7);
       playTimer.current = window.requestAnimationFrame(executePlayTimer);
 
       setIsPlaying(true);
       setRatio((prevRatio) => {
         return prevRatio >= 1 ? 0 : prevRatio;
       });
-      console.log('internalPlay');
+
       onPlay();
     }, []);
 
     const internalOnPause = useCallback(() => {
-      console.log(8);
       if (playTimer.current) {
         window.cancelAnimationFrame(playTimer.current);
       }
-      console.log('internalPause');
+
       setIsPlaying(false);
       onPause();
     }, []);
@@ -146,34 +139,28 @@ const RouteSeeker = forwardRef(
       if (progressBarRef.current) {
         const rect = progressBarRef.current.getBoundingClientRect();
         const x = e.clientX - rect.left;
-        if (clicked)
-          console.log(e.clientX, rect.left, rect.width, progressBarRef.current.offsetWidth);
-        return 100 * (x / progressBarRef.current.offsetWidth);
+        if (clicked) return 100 * (x / progressBarRef.current.offsetWidth);
       }
       return 0;
     };
 
     const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
-      console.log(9);
       let newRatio = mouseEventXOffsetPercent(e, true) / 100;
-      console.log(newRatio);
+
       newRatio = Math.min(1, Math.max(0, ratio));
       updateSeekedBar(newRatio);
       onUserSeek(newRatio);
     };
 
     const onMouseDown = () => {
-      console.log(10);
       setIsDragging(true);
     };
 
     const onMouseUp = () => {
-      console.log(11);
       setIsDragging(false);
     };
 
     const onMouseLeave = () => {
-      console.log(12);
       setMarkerStyle(styles.hidden);
       setTooltipStyle(styles.hidden);
       setIsDragging(false);
@@ -181,7 +168,6 @@ const RouteSeeker = forwardRef(
 
     const onMouseMove = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        console.log(13);
         const markerOffsetPct = mouseEventXOffsetPercent(e);
         if (markerOffsetPct < 0) {
           onMouseLeave();
@@ -311,4 +297,4 @@ const SeekedBar = styled.div`
   z-index: 2;
 `;
 
-export default RouteSeeker;
+export default Controls;

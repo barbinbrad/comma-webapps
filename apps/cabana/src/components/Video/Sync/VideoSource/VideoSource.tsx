@@ -2,7 +2,7 @@ import { Ref, RefObject, forwardRef, useEffect, useState, useCallback } from 're
 import { AspectRatio } from '@chakra-ui/react';
 import Hls from 'hls.js';
 
-const HLS = forwardRef(
+const VideoSource = forwardRef(
   (
     {
       source,
@@ -126,7 +126,7 @@ const HLS = forwardRef(
   },
 );
 
-export default HLS;
+export default VideoSource;
 
 type Props = {
   source: string;

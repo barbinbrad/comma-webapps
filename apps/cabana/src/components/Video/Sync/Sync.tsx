@@ -3,8 +3,8 @@ import { Box } from '@chakra-ui/react';
 import styled from '@emotion/styled';
 import { video as VideoApi } from 'api';
 import Loading from '~/components/Loading';
-import HLS from './HLS';
-import RouteSeeker from './RouteSeeker';
+import HLS from './VideoSource';
+import Controls from './Controls';
 
 export default function RouteVideoSync(props: Props) {
   const {
@@ -148,7 +148,7 @@ export default function RouteVideoSync(props: Props) {
         />
       )}
       {videoLength && (
-        <RouteSeeker
+        <Controls
           ref={videoRef}
           nearestFrameTime={userSeekTime}
           playing={playing}
